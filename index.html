@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Painel de Horas Pro</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"IBM Plex Sans"', 'sans-serif'],
+                        display: ['"Bricolage Grotesque"', 'sans-serif'],
+                        mono: ['"IBM Plex Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#F4FBF8',
+                            100: '#DCEBE6',
+                            500: '#5BD0B0',
+                            600: '#2F8F77',
+                            700: '#1B7F6A',
+                            800: '#0E5A4A',
+                            900: '#14211D',
+                        },
+                        accent: {
+                            100: '#F6E7D3',
+                            500: '#F0A64F',
+                            700: '#9A4F08',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #EDF0EE; }
+        
+        /* Ocultar setas em inputs number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Fundo listrado para dias fora do período */
+        .bg-stripes {
+            background-image: repeating-linear-gradient(
+                135deg,
+                transparent,
+                transparent 6px,
+                #E4E9E6 6px,
+                #E4E9E6 7px
+            );
+        }
+
+        /* Modais */
+        dialog::backdrop { background: rgba(20, 33, 29, 0.7); backdrop-filter: blur(4px); }
+        dialog { 
+            border: none; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 90vw; width: 400px; padding: 0;
+        }
+        dialog[open] { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    </style>
+</head>
+<body class="text-brand-900 antialiased min-h-screen flex flex-col pt-safe pb-safe">
+
+    <div class="max-w-6xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex-1 flex flex-col gap-6">
+        
+        <header class="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-1 block font-sans">Apontamentos Mensais</span>
+                <h1 class="text-3xl font-bold font-display tracking-tight text-brand-900">Painel de Horas</h1>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="openSalaryModal()" class="text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 px-4 py-2.5 rounded-lg border border-brand-100 transition-colors mr-2">
+                    Alterar Salário Base
+                </button>
+
+                <select id="periodSel" class="bg-gray-50 border border-gray-200 text-brand-900 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 font-mono outline-none transition-colors max-w-xs">
+                    <option value="">Carregando...</option>
+                </select>
+                
+                <button onclick="openNewPeriodModal()" class="text-white bg-brand-800 hover:bg-brand-900 font-medium rounded-lg text-sm px-5 py-2.5 transition-colors shadow-sm">
+                    Novo Período
+                </button>
+            </div>
+        </header>
+
+        <main id="app-content" class="flex flex-col gap-6">
+            <!-- Conteúdo dinâmico injetado aqui -->
+        </main>
+    </div>
+
+    <!-- Modal: Salário Base -->
+    <dialog id="salaryModal" class="bg-white">
+        <div class="p-6">
+            <h2 class="text-xl font-display font-bold mb-2" id="salaryModalTitle">Salário Base</h2>
+            <p class="text-sm text-gray-500 mb-6">Este valor será salvo como base global para os próximos períodos criados.</p>
+            
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Valor Mensal (R$)</label>
+                <input type="number" id="inpGlobalSalary" step="0.01" min="0" class="w-full text-xl font-mono p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="0.00">
+            </div>
+            
+            <div class="flex justify-end gap-3">
+                <button type="button" id="btnCancelSalary" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg hidden">Cancelar</button>
+                <button type="button" onclick="saveGlobalSalary()" class="px-5 py-2 text-sm font-medium text-white bg-brand-800 hover:bg-brand-900 rounded-lg">Salvar Salário</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Modal: Novo Período -->
+    <dialog id="periodModal" class="bg-white">
+        <div class="p-6">
+            <h2 class="text-xl font-display font-bold mb-6">Criar Novo Período</h2>
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Data Inicial</label>
+                    <input type="date" id="inpNewStart" class="w-full font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Data Final</label>
+                    <input type="date" id="inpNewEnd" class="w-full font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('periodModal').close()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button type="button" onclick="createNewPeriod()" class="px-5 py-2 text-sm font-medium text-white bg-brand-800 hover:bg-brand-900 rounded-lg">Criar</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Modal: Nota Diária -->
+    <dialog id="noteModal" class="bg-white">
+        <div class="p-6">
+            <h2 class="text-lg font-display font-bold mb-1">Anotações do Dia</h2>
+            <p id="noteDateDisplay" class="text-sm font-mono text-gray-500 mb-4"></p>
+            
+            <input type="hidden" id="inpNoteDate">
+            <textarea id="inpNoteText" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm mb-4" placeholder="Adicione detalhes, projetos, atestados..."></textarea>
+            
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('noteModal').close()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button type="button" onclick="saveNote()" class="px-5 py-2 text-sm font-medium text-white bg-brand-800 hover:bg-brand-900 rounded-lg">Salvar Nota</button>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        // Estado Global
+        const STORAGE_KEY = 'painel_horas_pro_v1';
+        let state = {
+            globalSalary: null,
+            periods: {},
+            currentId: null
+        };
+
+        // Arrays e Utilitários
+        const WEEK_DAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+        
+        const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+        const formatDate = d => d.toISOString().slice(0, 10);
+        const addDays = (s, n) => { const d = parseDate(s); d.setUTCDate(d.getUTCDate() + n); return formatDate(d); };
+        const getDayOfWeek = s => parseDate(s).getUTCDay();
+        const formatBR = s => s.slice(8, 10) + '/' + s.slice(5, 7);
+        const formatBRFull = s => formatBR(s) + '/' + s.slice(0, 4);
+        const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+        const formatHours = n => (Math.round((n || 0) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' h';
+
+        // Lógica de Feriados Nacionais (Fixos e Móveis)
+        const holidaysCache = {};
+        
+        function calculateEaster(year) {
+            const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+            const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+            const g = Math.floor((b - f + 1) / 3);
+            const h = (19 * a + b - d - g + 15) % 30;
+            const i = Math.floor(c / 4), k = c % 4;
+            const l = (32 + 2 * e + 2 * i - h - k) % 7;
+            const m = Math.floor((a + 11 * h + 22 * l) / 451);
+            const month = Math.floor((h + l - 7 * m + 114) / 31);
+            const day = ((h + l - 7 * m + 114) % 31) + 1;
+            return new Date(Date.UTC(year, month - 1, day));
+        }
+
+        function getHolidays(year) {
+            if(holidaysCache[year]) return holidaysCache[year];
+            
+            // Feriados Fixos
+            const fixed = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '12-25'].map(d => `${year}-${d}`);
+            
+            // Feriados Móveis baseados na Páscoa
+            const easter = calculateEaster(year);
+            const carnival = new Date(easter); carnival.setUTCDate(carnival.getUTCDate() - 47);
+            const goodFriday = new Date(easter); goodFriday.setUTCDate(goodFriday.getUTCDate() - 2);
+            const corpus = new Date(easter); corpus.setUTCDate(corpus.getUTCDate() + 60);
+
+            const mobile = [carnival, goodFriday, corpus].map(formatDate);
+            
+            holidaysCache[year] = new Set([...fixed, ...mobile]);
+            return holidaysCache[year];
+        }
+
+        function isHoliday(dateStr) {
+            const year = parseInt(dateStr.slice(0, 4));
+            const holSet = getHolidays(year);
+            return holSet.has(dateStr);
+        }
+
+        function getHolidayName(dateStr) {
+            if(!isHoliday(dateStr)) return null;
+            const [,m,d] = dateStr.split('-');
+            const md = `${m}-${d}`;
+            const map = {
+                '01-01': 'Ano Novo', '04-21': 'Tiradentes', '05-01': 'Dia do Trabalho',
+                '09-07': 'Independência', '10-12': 'N. Sra. Aparecida', '11-02': 'Finados',
+                '11-15': 'Proc. República', '12-25': 'Natal'
+            };
+            if(map[md]) return map[md];
+            // Inferência simples para móveis (móveis caem em dias da semana específicos)
+            const w = getDayOfWeek(dateStr);
+            if(w === 2) return 'Carnaval';
+            if(w === 5) return 'Sexta Santa';
+            if(w === 4) return 'Corpus Christi';
+            return 'Feriado';
+        }
+
+        function init() {
+            try {
+                const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (data) {
+                    state.globalSalary = data.globalSalary || null;
+                    state.periods = data.periods || {};
+                    state.currentId = data.currentId || null;
+                }
+            } catch (e) { console.error("Erro no localstorage", e); }
+
+            // Bloqueio obrigatório de Salário
+            if (!state.globalSalary) {
+                const modal = document.getElementById('salaryModal');
+                document.getElementById('btnCancelSalary').classList.add('hidden');
+                document.getElementById('salaryModalTitle').innerText = "Bem-vindo! Qual seu Salário Base?";
+                
+                // Evita fechar com ESC
+                modal.addEventListener('cancel', (e) => { e.preventDefault(); });
+                modal.showModal();
+            } else {
+                validateSelection();
+                renderApp();
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        function validateSelection() {
+            const sorted = Object.values(state.periods).sort((a,b) => b.start.localeCompare(a.start));
+            if(sorted.length === 0) {
+                state.currentId = null;
+            } else if (!state.currentId || !state.periods[state.currentId]) {
+                state.currentId = sorted[0].id;
+            }
+        }
+
+        window.openSalaryModal = function() {
+            const modal = document.getElementById('salaryModal');
+            document.getElementById('salaryModalTitle').innerText = "Alterar Salário Base";
+            document.getElementById('inpGlobalSalary').value = state.globalSalary || '';
+            document.getElementById('btnCancelSalary').classList.remove('hidden');
+            document.getElementById('btnCancelSalary').onclick = () => modal.close();
+            
+            // Remove block behavior
+            modal.oncancel = null; 
+            modal.showModal();
+        }
+
+        window.saveGlobalSalary = function() {
+            const val = parseFloat(document.getElementById('inpGlobalSalary').value);
+            if (val > 0) {
+                state.globalSalary = val;
+                saveData();
+                document.getElementById('salaryModal').close();
+                validateSelection();
+                renderApp();
+            }
+        }
+
+        window.openNewPeriodModal = function() {
+            if (!state.globalSalary) {
+                openSalaryModal(); // Força criar salário primeiro
+                return;
+            }
+            const modal = document.getElementById('periodModal');
+            
+            // Pre-fill inteligente
+            const sorted = Object.values(state.periods).sort((a,b) => b.start.localeCompare(a.start));
+            if (sorted.length > 0) {
+                document.getElementById('inpNewStart').value = addDays(sorted[0].end, 1);
+                
+                const dEnd = parseDate(addDays(sorted[0].end, 1));
+                dEnd.setUTCMonth(dEnd.getUTCMonth() + 1);
+                dEnd.setUTCDate(15); // Dia 15 por padrão
+                document.getElementById('inpNewEnd').value = formatDate(dEnd);
+            }
+            
+            modal.showModal();
+        }
+
+        window.createNewPeriod = function() {
+            const start = document.getElementById('inpNewStart').value;
+            const end = document.getElementById('inpNewEnd').value;
+            
+            if (start && end && start <= end) {
+                const id = `p_${start}_${end}`;
+                state.periods[id] = {
+                    id: id,
+                    start: start,
+                    end: end,
+                    salary: state.globalSalary, // Snapshot do momento
+                    days: {}
+                };
+                state.currentId = id;
+                saveData();
+                document.getElementById('periodModal').close();
+                renderApp();
+            }
+        }
+
+        function getDaysInPeriod(p) {
+            const days = [];
+            let d = p.start;
+            let failsafe = 0;
+            while (d <= p.end && failsafe < 400) {
+                days.push(d);
+                d = addDays(d, 1);
+                failsafe++;
+            }
+            return days;
+        }
+
+        function calculateTotals(p) {
+            let workDaysCount = 0;
+            let sumNormais = 0;
+            let sumAdicionais = 0;
+            const days = p.days || {};
+
+            for (const d of getDaysInPeriod(p)) {
+                const w = getDayOfWeek(d);
+                const isWknd = (w === 0 || w === 6);
+                const isHol = isHoliday(d);
+                
+                if (!isWknd && !isHol) {
+                    workDaysCount++;
+                }
+
+                if (days[d]) {
+                    sumNormais += parseFloat(days[d].n || 0);
+                    sumAdicionais += parseFloat(days[d].a || 0);
+                }
+            }
+
+            const periodHours = workDaysCount * 8;
+            const salary = p.salary;
+            const hourlyRate = periodHours > 0 ? salary / periodHours : 0;
+            const totalHours = sumNormais + sumAdicionais;
+            
+            return {
+                workDaysCount, periodHours,
+                sumNormais, sumAdicionais, totalHours,
+                hourlyRate,
+                valTotal: hourlyRate * totalHours
+            };
+        }
+
+        function renderApp() {
+            const appContent = document.getElementById('app-content');
+            const sel = document.getElementById('periodSel');
+            
+            // Popula Selector
+            const sorted = Object.values(state.periods).sort((a,b) => b.start.localeCompare(a.start));
+            sel.innerHTML = sorted.map(p => 
+                `<option value="${p.id}" ${p.id === state.currentId ? 'selected' : ''}>${formatBR(p.start)} → ${formatBRFull(p.end)}</option>`
+            ).join('') || '<option value="">Nenhum período</option>';
+            sel.disabled = sorted.length === 0;
+
+            const p = state.periods[state.currentId];
+            if (!p) {
+                appContent.innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center flex flex-col items-center justify-center">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                            <span class="text-3xl">📅</span>
+                        </div>
+                        <h2 class="text-xl font-display font-bold text-gray-800 mb-2">Pronto para começar</h2>
+                        <p class="text-gray-500 max-w-md mb-6 font-sans">Crie um novo período de fechamento e informe as datas inicial e final para gerar as planilhas.</p>
+                        <button onclick="openNewPeriodModal()" class="text-white bg-brand-800 hover:bg-brand-900 font-medium rounded-lg px-6 py-3 shadow-sm transition-colors">
+                            Criar Primeiro Período
+                        </button>
+                    </div>`;
+                return;
+            }
+
+            const calc = calculateTotals(p);
+            
+            let html = `
+                <!-- Resumo Header -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                    
+                    <div class="lg:col-span-1 bg-brand-800 text-brand-50 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                        <span class="text-xs uppercase tracking-widest font-semibold opacity-80">Total a Receber</span>
+                        <div class="mt-2 text-4xl font-mono font-bold">${BRL.format(calc.valTotal)}</div>
+                        <div class="mt-4 pt-4 border-t border-brand-700/50 flex justify-between text-sm">
+                            <span>Base: ${BRL.format(p.salary)}</span>
+                            <span class="font-mono">${BRL.format(calc.hourlyRate)}/h</span>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center">
+                            <span class="text-xs uppercase font-semibold text-gray-400">Dias Úteis</span>
+                            <span class="text-2xl font-mono text-gray-800 mt-1">${calc.workDaysCount}</span>
+                            <span class="text-xs text-gray-400 mt-1">Descontados Feriados</span>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center">
+                            <span class="text-xs uppercase font-semibold text-gray-400">Horas do Período</span>
+                            <span class="text-2xl font-mono text-gray-800 mt-1">${formatHours(calc.periodHours)}</span>
+                            <span class="text-xs text-gray-400 mt-1">${calc.workDaysCount} dias × 8h</span>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center border-b-4 border-brand-500">
+                            <span class="text-xs uppercase font-semibold text-gray-400">Lançado (N)</span>
+                            <span class="text-2xl font-mono text-brand-700 mt-1">${formatHours(calc.sumNormais)}</span>
+                            <span class="text-xs text-gray-400 mt-1">Normais</span>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center border-b-4 border-accent-500">
+                            <span class="text-xs uppercase font-semibold text-gray-400">Lançado (AD)</span>
+                            <span class="text-2xl font-mono text-accent-700 mt-1">${formatHours(calc.sumAdicionais)}</span>
+                            <span class="text-xs text-gray-400 mt-1">Adicionais</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-end pb-2 border-b border-gray-200 mt-2">
+                    <h2 class="text-xl font-display font-bold">Apontamentos Semanais</h2>
+                    <div class="flex gap-2">
+                        <button onclick="fillNormalHours()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">
+                            Preencher 8h (Dias Úteis)
+                        </button>
+                        <button onclick="clearHours()" class="bg-white border border-red-200 hover:bg-red-50 text-red-600 text-xs px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">
+                            Limpar
+                        </button>
+                        <button onclick="deleteCurrentPeriod()" class="bg-red-100 border border-red-200 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">
+                            Excluir Período
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-6" id="weeksContainer">
+                    ${generateWeeksHTML(p)}
+                </div>
+            `;
+            
+            appContent.innerHTML = html;
+        }
+
+        function generateWeeksHTML(p) {
+            let currentMonday = parseDate(p.start);
+            const startDayOfWeek = currentMonday.getUTCDay();
+            const offset = startDayOfWeek === 0 ? -6 : -(startDayOfWeek - 1);
+            currentMonday.setUTCDate(currentMonday.getUTCDate() + offset);
+            let currentMondayStr = formatDate(currentMonday);
+
+            let html = '';
+            let failsafe = 0;
+
+            while (currentMondayStr <= p.end && failsafe < 52) {
+                const weekDatesStr = [];
+                for (let i = 0; i < 7; i++) {
+                    weekDatesStr.push(addDays(currentMondayStr, i));
+                }
+
+                // Cabeçalho da Semana
+                let thead = `<thead class="bg-gray-50 border-b border-gray-200"><tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-32 border-r border-gray-200">Tipo</th>`;
+                
+                weekDatesStr.forEach(dStr => {
+                    const isWknd = getDayOfWeek(dStr) === 0 || getDayOfWeek(dStr) === 6;
+                    const inP = dStr >= p.start && dStr <= p.end;
+                    const holName = isHoliday(dStr) ? getHolidayName(dStr) : null;
+                    
+                    let cls = "px-2 py-3 text-center border-r border-gray-200 min-w-[70px]";
+                    if (isWknd) cls += " bg-gray-100/60";
+                    if (!inP) cls += " bg-stripes opacity-50";
+                    
+                    thead += `<th class="${cls}">
+                        <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">${WEEK_DAYS[getDayOfWeek(dStr)]}</span>
+                        <span class="block text-sm font-mono ${holName ? 'text-red-600 font-bold' : 'text-gray-800'}">${formatBR(dStr)}</span>
+                        ${holName && inP ? `<span class="block text-[9px] text-red-500 uppercase mt-1 font-bold truncate max-w-[80px] mx-auto" title="${holName}">${holName}</span>` : ''}
+                    </th>`;
+                });
+                thead += `<th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100 w-24">Soma</th></tr></thead>`;
+
+                // Linhas
+                const rowN = generateRow(weekDatesStr, 'n', 'Normais', 'text-brand-800 bg-brand-50/50', p);
+                const rowA = generateRow(weekDatesStr, 'a', 'Adicionais', 'text-accent-700 bg-accent-100/30', p);
+                const rowNotes = generateNotesRow(weekDatesStr, p);
+
+                html += `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+                            <h3 class="text-sm font-display font-bold text-gray-700">Semana: ${formatBR(currentMondayStr)} a ${formatBR(weekDatesStr[6])}</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                ${thead}
+                                <tbody class="divide-y divide-gray-200">
+                                    ${rowN}
+                                    ${rowA}
+                                    ${rowNotes}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+
+                currentMondayStr = addDays(currentMondayStr, 7);
+                failsafe++;
+            }
+            return html;
+        }
+
+        function generateRow(weekDatesStr, key, label, rowClass, p) {
+            let html = `<tr class="${rowClass} transition-colors"><td class="px-4 py-3 text-sm font-semibold border-r border-gray-200">${label}</td>`;
+            let sum = 0;
+            const days = p.days || {};
+
+            weekDatesStr.forEach(dStr => {
+                const inP = dStr >= p.start && dStr <= p.end;
+                const v = days[dStr] && days[dStr][key] ? days[dStr][key] : '';
+                sum += parseFloat(v || 0);
+
+                if (!inP) {
+                    html += `<td class="bg-stripes opacity-40 border-r border-gray-200"></td>`;
+                } else {
+                    html += `
+                        <td class="p-1 border-r border-gray-200 relative bg-white">
+                            <input type="number" 
+                                class="w-full h-10 text-center font-mono text-sm bg-transparent border-2 border-transparent focus:border-brand-500 focus:bg-brand-50 outline-none rounded transition-colors" 
+                                value="${v}" 
+                                onchange="updateHour('${dStr}', '${key}', this.value)"
+                                step="0.5" min="0" max="24">
+                        </td>`;
+                }
+            });
+            html += `<td class="px-4 py-3 text-center font-mono font-bold border-l border-gray-200 bg-gray-50/50">${formatHours(sum)}</td></tr>`;
+            return html;
+        }
+
+        function generateNotesRow(weekDatesStr, p) {
+            let html = `<tr><td class="px-4 py-2 text-xs font-medium text-gray-500 border-r border-gray-200 bg-gray-50/50">Notas</td>`;
+            const days = p.days || {};
+
+            weekDatesStr.forEach(dStr => {
+                const inP = dStr >= p.start && dStr <= p.end;
+                const note = days[dStr] && days[dStr].note ? days[dStr].note : '';
+                
+                if (!inP) {
+                    html += `<td class="bg-stripes opacity-40 border-r border-gray-200"></td>`;
+                } else {
+                    const hasNote = note.trim().length > 0;
+                    const btnClass = hasNote 
+                        ? 'text-brand-600 bg-brand-100 hover:bg-brand-200' 
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100';
+                    
+                    html += `
+                        <td class="p-1.5 border-r border-gray-200 text-center">
+                            <button onclick="openNoteModal('${dStr}')" class="w-8 h-8 rounded-full inline-flex items-center justify-center transition-colors ${btnClass}" title="${hasNote ? 'Editar nota' : 'Adicionar nota'}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                            </button>
+                        </td>`;
+                }
+            });
+            html += `<td class="bg-gray-50/50"></td></tr>`;
+            return html;
+        }
+
+        window.updateHour = function(dateStr, key, valStr) {
+            const val = parseFloat(valStr);
+            const p = state.periods[state.currentId];
+            if (!p.days) p.days = {};
+            if (!p.days[dateStr]) p.days[dateStr] = {};
+            
+            if (isFinite(val) && val > 0) {
+                p.days[dateStr][key] = Math.min(24, val);
+            } else {
+                delete p.days[dateStr][key];
+            }
+            
+            // Cleanup vazio
+            if (!p.days[dateStr].n && !p.days[dateStr].a && !p.days[dateStr].note) {
+                delete p.days[dateStr];
+            }
+
+            saveData();
+            renderApp();
+        }
+
+        window.openNoteModal = function(dateStr) {
+            const p = state.periods[state.currentId];
+            const note = (p.days && p.days[dateStr] && p.days[dateStr].note) || '';
+            
+            document.getElementById('noteDateDisplay').innerText = `Data: ${formatBRFull(dateStr)}`;
+            document.getElementById('inpNoteDate').value = dateStr;
+            document.getElementById('inpNoteText').value = note;
+            
+            document.getElementById('noteModal').showModal();
+        }
+
+        window.saveNote = function() {
+            const dateStr = document.getElementById('inpNoteDate').value;
+            const text = document.getElementById('inpNoteText').value.trim();
+            const p = state.periods[state.currentId];
+            
+            if (!p.days) p.days = {};
+            if (!p.days[dateStr]) p.days[dateStr] = {};
+            
+            if (text.length > 0) {
+                p.days[dateStr].note = text;
+            } else {
+                delete p.days[dateStr].note;
+            }
+            
+            if (!p.days[dateStr].n && !p.days[dateStr].a && !p.days[dateStr].note) {
+                delete p.days[dateStr];
+            }
+
+            saveData();
+            document.getElementById('noteModal').close();
+            renderApp();
+        }
+
+        window.fillNormalHours = function() {
+            const p = state.periods[state.currentId];
+            if (!p.days) p.days = {};
+
+            for (const d of getDaysInPeriod(p)) {
+                const w = getDayOfWeek(d);
+                const isWknd = (w === 0 || w === 6);
+                const isHol = isHoliday(d);
+                
+                if (!isWknd && !isHol) {
+                    if (!p.days[d]) p.days[d] = {};
+                    if (!p.days[d].n) p.days[d].n = 8;
+                }
+            }
+            saveData();
+            renderApp();
+        }
+
+        window.clearHours = function() {
+            const p = state.periods[state.currentId];
+            // Remove apenas as horas (mantém as notas para não causar perda de dados de texto acidental)
+            if(p.days) {
+                for(let d in p.days) {
+                    delete p.days[d].n;
+                    delete p.days[d].a;
+                    if(!p.days[d].note) delete p.days[d];
+                }
+            }
+            saveData();
+            renderApp();
+        }
+
+        window.deleteCurrentPeriod = function() {
+            delete state.periods[state.currentId];
+            saveData();
+            validateSelection();
+            renderApp();
+        }
+
+        document.getElementById('periodSel').addEventListener('change', (e) => {
+            state.currentId = e.target.value;
+            saveData();
+            renderApp();
+        });
+
+        // Start App
+        init();
+
+    </script>
+</body>
+</html>
