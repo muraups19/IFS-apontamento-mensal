@@ -1,701 +1,826 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Painel de Horas Pro</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"IBM Plex Sans"', 'sans-serif'],
-                        display: ['"Bricolage Grotesque"', 'sans-serif'],
-                        mono: ['"IBM Plex Mono"', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#F4FBF8',
-                            100: '#DCEBE6',
-                            500: '#5BD0B0',
-                            600: '#2F8F77',
-                            700: '#1B7F6A',
-                            800: '#0E5A4A',
-                            900: '#14211D',
-                        },
-                        accent: {
-                            100: '#F6E7D3',
-                            500: '#F0A64F',
-                            700: '#9A4F08',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background-color: #EDF0EE; }
-        
-        /* Ocultar setas em inputs number */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Painel de Horas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: cabeçalho em cartão, faixa de resumo (total em verde + 4 indicadores), uma tabela por semana e painéis de feriados/anotações no fim. */
+:root{
+  --bg:#EDF0EE; --surface:#FFFFFF; --surface-2:#F6F8F7; --ink:#14211D; --muted:#6B7772; --faint:#98A39E; --line:#E1E6E3;
+  --b50:#F4FBF8; --b100:#DCEBE6; --b200:#C3DDD4; --b500:#5BD0B0; --b600:#2F8F77; --b700:#1B7F6A; --b800:#0E5A4A; --b900:#14211D;
+  --a100:#F6E7D3; --a500:#F0A64F; --a700:#9A4F08;
+  --stripe:#E4E9E6; --red:#C0392B; --red-bg:#FDEEEC; --red-line:#F3C9C4;
+  --hero:#0E5A4A; --hero-ink:#F4FBF8; --hero-line:rgba(244,251,248,.22);
+  --btn:#0E5A4A; --btn-ink:#FFFFFF; --btn-hover:#14211D;
+  --scrim:rgba(20,33,29,.7);
+  --f-sans:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-display:'Bricolage Grotesque','IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1715; --surface:#172320; --surface-2:#1C2926; --ink:#E6EEEA; --muted:#93A59E; --faint:#6F8179; --line:#2A3A35;
+  --b50:#1B3A32; --b100:#1F4439; --b200:#2A5A4B; --b500:#5BD0B0; --b600:#5BD0B0; --b700:#5BD0B0; --b800:#2F8F77; --b900:#E6EEEA;
+  --a100:#3A2A14; --a500:#F0A64F; --a700:#F0A64F;
+  --stripe:#22322D; --red:#F08A80; --red-bg:#3A1F1C; --red-line:#6B3029;
+  --hero:#164E41; --hero-ink:#F4FBF8; --hero-line:rgba(244,251,248,.2);
+  --btn:#2F8F77; --btn-ink:#F4FBF8; --btn-hover:#3BA68C;
+  --scrim:rgba(0,0,0,.65); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0F1715; --surface:#172320; --surface-2:#1C2926; --ink:#E6EEEA; --muted:#93A59E; --faint:#6F8179; --line:#2A3A35;
+  --b50:#1B3A32; --b100:#1F4439; --b200:#2A5A4B; --b500:#5BD0B0; --b600:#5BD0B0; --b700:#5BD0B0; --b800:#2F8F77; --b900:#E6EEEA;
+  --a100:#3A2A14; --a500:#F0A64F; --a700:#F0A64F;
+  --stripe:#22322D; --red:#F08A80; --red-bg:#3A1F1C; --red-line:#6B3029;
+  --hero:#164E41; --hero-ink:#F4FBF8; --hero-line:rgba(244,251,248,.2);
+  --btn:#2F8F77; --btn-ink:#F4FBF8; --btn-hover:#3BA68C;
+  --scrim:rgba(0,0,0,.65); color-scheme:dark;}
 
-        /* Fundo listrado para dias fora do período */
-        .bg-stripes {
-            background-image: repeating-linear-gradient(
-                135deg,
-                transparent,
-                transparent 6px,
-                #E4E9E6 6px,
-                #E4E9E6 7px
-            );
-        }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 14px/1.5 var(--f-sans);padding-inline:clamp(16px,3vw,32px);padding-block:clamp(16px,3vw,32px) 56px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:72rem;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{margin:0;font-family:var(--f-display);text-wrap:balance}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--b600);outline-offset:2px}
+.eyebrow{display:block;font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--b600);margin-bottom:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 
-        /* Modais */
-        dialog::backdrop { background: rgba(20, 33, 29, 0.7); backdrop-filter: blur(4px); }
-        dialog { 
-            border: none; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            max-width: 90vw; width: 400px; padding: 0;
-        }
-        dialog[open] { animation: fadeIn 0.2s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    </style>
+/* cabeçalho */
+.hdr{padding:24px;display:flex;flex-wrap:wrap;gap:16px 20px;align-items:flex-end;justify-content:space-between}
+.hdr h1{font-size:clamp(1.6rem,3.6vw,1.9rem);line-height:1.15;font-weight:700;letter-spacing:-.015em}
+.tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;min-width:0}
+.btn-soft{font-size:.75rem;font-weight:600;color:var(--b700);background:var(--b50);border:1px solid var(--b100);border-radius:8px;padding:10px 16px;cursor:pointer}
+.btn-soft:hover{background:var(--b100)}
+.btn-brand{font-size:.875rem;font-weight:500;color:var(--btn-ink);background:var(--btn);border:1px solid transparent;border-radius:8px;padding:10px 20px;cursor:pointer}
+.btn-brand:hover{background:var(--btn-hover)}
+.btn-brand:disabled{opacity:.5;cursor:not-allowed}
+.sel{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--f-mono);font-size:.85rem;max-width:20rem;min-width:0}
+.status{font-size:.75rem;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--b500)}
+.status[data-s="saving"]::before{background:var(--a500)}
+.status[data-s="error"]{color:var(--red)} .status[data-s="error"]::before{background:var(--red)}
+.status[data-s="local"]::before{background:var(--faint)}
+
+/* resumo */
+.summary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:16px}
+.hero{background:var(--hero);color:var(--hero-ink);border-radius:16px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-width:0}
+.hero .cap{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;opacity:.8}
+.hero .big{font-family:var(--f-mono);font-weight:600;font-size:clamp(1.7rem,3.2vw,2.15rem);line-height:1.15;margin-top:8px;overflow-wrap:anywhere}
+.hero .base{margin-top:16px;padding-top:16px;border-top:1px solid var(--hero-line);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.85rem}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.stat .cap{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;font-weight:600;color:var(--faint)}
+.stat .v{font-family:var(--f-mono);font-size:1.5rem;margin-top:4px;overflow-wrap:anywhere}
+.stat .s{font-size:.75rem;color:var(--faint);margin-top:4px}
+.stat.n{border-bottom:4px solid var(--b500)} .stat.n .v{color:var(--b700)}
+.stat.a{border-bottom:4px solid var(--a500)} .stat.a .v{color:var(--a700)}
+.linkbtn{background:none;border:0;padding:0;color:var(--b700);cursor:pointer;font-size:.75rem;text-decoration:underline;text-underline-offset:2px;text-align:left}
+
+/* cabeçalho de seção */
+.sechead{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.sechead h2{font-size:1.25rem;font-weight:700}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.btn-out{font-size:.75rem;font-weight:500;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:7px 12px;cursor:pointer}
+.btn-out:hover{background:var(--surface-2)}
+.btn-out.red{color:var(--red);border-color:var(--red-line)} .btn-out.red:hover{background:var(--red-bg)}
+.btn-out.redfill{color:var(--red);background:var(--red-bg);border-color:var(--red-line)}
+.btn-out.arm{background:var(--red);border-color:var(--red);color:#fff}
+
+/* semanas */
+.weeks{display:flex;flex-direction:column;gap:24px}
+.week{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.week>header{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.week h3{font-size:.875rem;font-weight:700;color:var(--muted)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:660px}
+th,td{border-right:1px solid var(--line);padding:0;text-align:center}
+tbody tr+tr>*{border-top:1px solid var(--line)}
+thead th{background:var(--surface-2);border-bottom:1px solid var(--line);padding:12px 8px;min-width:70px;font-weight:400}
+thead th.type{text-align:left;padding:12px 16px;width:128px;font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+thead th .dw{display:block;font-size:.65rem;font-weight:700;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+thead th .dd{display:block;font-family:var(--f-mono);font-size:.875rem}
+thead th .dd.hol{color:var(--red);font-weight:600}
+thead th .hn{display:block;font-size:.58rem;color:var(--red);text-transform:uppercase;font-weight:700;margin:4px auto 0;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+thead th.sum{width:96px;font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;border-right:0}
+.wk{background:var(--surface-2)}
+.out{background:repeating-linear-gradient(135deg,transparent 0 6px,var(--stripe) 6px 7px);opacity:.7}
+td.lab{padding:12px 16px;text-align:left;font-size:.875rem;font-weight:600}
+tr.rn td.lab{color:var(--b800);background:color-mix(in srgb,var(--b50) 60%,var(--surface))}
+tr.ra td.lab{color:var(--a700);background:color-mix(in srgb,var(--a100) 40%,var(--surface))}
+tr.rc td.lab{font-size:.75rem;font-weight:500;color:var(--muted);background:var(--surface-2)}
+tr.rn td.cell{background:color-mix(in srgb,var(--b50) 40%,var(--surface))}
+tr.ra td.cell{background:color-mix(in srgb,var(--a100) 25%,var(--surface))}
+td.cell{padding:4px}
+td.cell input{width:100%;height:40px;text-align:center;font-family:var(--f-mono);font-size:.875rem;background:transparent;border:2px solid transparent;border-radius:6px;appearance:textfield;-moz-appearance:textfield;outline:none}
+td.cell input::-webkit-outer-spin-button,td.cell input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+td.cell input:hover{border-color:var(--line)}
+td.cell input:focus{border-color:var(--b500);background:var(--b50)}
+tr.rn td.cell input:not(:placeholder-shown){color:var(--b800);font-weight:500}
+tr.ra td.cell input:not(:placeholder-shown){color:var(--a700);font-weight:500}
+td.sumc{padding:12px 16px;font-family:var(--f-mono);font-weight:700;background:var(--surface-2);border-right:0}
+td.nc{padding:6px}
+.nbtn{width:32px;height:32px;border-radius:50%;border:0;background:transparent;color:var(--faint);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.nbtn:hover{background:var(--surface-2);color:var(--muted)}
+.nbtn.has{color:var(--b700);background:var(--b100)} .nbtn.has:hover{background:var(--b200)}
+.nbtn svg{width:16px;height:16px}
+
+/* painéis inferiores */
+.bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.panel{padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:1.1rem;font-weight:700}
+.panel p{margin:0;font-size:.875rem;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.in{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-family:var(--f-mono);font-size:.85rem;min-width:0}
+.in:focus{outline:2px solid var(--b500);outline-offset:0;border-color:var(--b500)}
+textarea.in{font-family:var(--f-sans);font-size:.875rem;width:100%;resize:vertical}
+.btn-grey{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 16px;font-size:.875rem;font-weight:500;cursor:pointer}
+.btn-grey:hover{background:var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.75rem}
+.chip i{font-style:normal;font-family:var(--f-mono)}
+.chip button{border:0;background:none;color:var(--red);cursor:pointer;font-size:1rem;line-height:1;padding:0 0 2px}
+.dim{color:var(--faint);font-size:.875rem}
+details.nat summary{cursor:pointer;font-size:.8rem;color:var(--b700);font-weight:500}
+details.nat .chips{margin-top:10px}
+
+.empty{padding:48px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty .ic{width:64px;height:64px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--faint);margin-bottom:8px}
+.empty h2{font-size:1.25rem;font-weight:700}
+.empty p{margin:0 0 16px;max-width:28rem;color:var(--muted)}
+
+/* janelas */
+dialog{border:1px solid var(--line);border-radius:12px;box-shadow:0 25px 50px -12px rgba(0,0,0,.35);width:440px;max-width:calc(100vw - 32px);padding:0;background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:var(--scrim);backdrop-filter:blur(4px)}
+dialog[open]{animation:fadeIn .2s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){dialog[open]{animation:none}}
+.dlg{padding:24px;display:flex;flex-direction:column;gap:16px}
+.dlg h2{font-size:1.25rem;font-weight:700}
+.dlg p{margin:0;font-size:.875rem;color:var(--muted)}
+.dlg label.cap{display:block;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.dlg .in{width:100%}
+.dlg .big{font-size:1.25rem;padding:12px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.dact{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.btn-ghost{background:none;border:0;border-radius:8px;padding:9px 16px;font-size:.875rem;font-weight:500;color:var(--muted);cursor:pointer}
+.btn-ghost:hover{background:var(--surface-2)}
+.box{border-radius:8px;padding:12px;font-size:.875rem;display:flex;flex-direction:column;gap:8px}
+.box.ok{background:var(--b50);border:1px solid var(--b100)}
+.box.bad{background:var(--red-bg);border:1px solid var(--red-line);color:var(--red);font-weight:500}
+.box.idle{background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:.85rem}
+.check input{margin-top:3px;accent-color:var(--b800)}
+.hidden{display:none!important}
+
+@media (max-width:900px){
+  .summary{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bottom{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .hdr{padding:18px} .tools{width:100%} .sel{flex:1 1 100%;max-width:none}
+  .stat{padding:16px} .stat .v{font-size:1.25rem}
+  .g2{grid-template-columns:minmax(0,1fr)}
+}
+
+[hidden]{display:none!important}
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.authcard{width:100%;max-width:420px;padding:28px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{border:0;background:transparent;padding:9px;border-radius:7px;font-weight:600;cursor:pointer;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.who{font-size:.8rem;color:var(--muted);max-width:12rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status[data-s="error"]{text-decoration:underline}
+.stack{width:100%;min-width:0;display:flex;flex-direction:column;gap:24px}
+.wrap>*{min-width:0}
+</style>
 </head>
-<body class="text-brand-900 antialiased min-h-screen flex flex-col pt-safe pb-safe">
+<body>
+<div id="setupView" hidden>
+  <div class="auth"><div class="card dlg authcard">
+    <div><span class="eyebrow">Falta um passo</span><h1 style="font-size:1.5rem">Configure o Supabase</h1></div>
+    <p>Abra o arquivo <b class="mono">config.js</b> e preencha a URL do projeto e a chave pública (anon ou publishable). Os passos completos estão no <b>README.md</b>.</p>
+    <p class="mono" style="font-size:.8rem">window.PAINEL_CONFIG = { url: "https://xxxx.supabase.co", anonKey: "..." }</p>
+  </div></div>
+</div>
 
-    <div class="max-w-6xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex-1 flex flex-col gap-6">
-        
-        <header class="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div>
-                <span class="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-1 block font-sans">Apontamentos Mensais</span>
-                <h1 class="text-3xl font-bold font-display tracking-tight text-brand-900">Painel de Horas</h1>
-            </div>
-            
-            <div class="flex flex-wrap items-center gap-3">
-                <button onclick="openSalaryModal()" class="text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 px-4 py-2.5 rounded-lg border border-brand-100 transition-colors mr-2">
-                    Alterar Salário Base
-                </button>
-
-                <select id="periodSel" class="bg-gray-50 border border-gray-200 text-brand-900 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 font-mono outline-none transition-colors max-w-xs">
-                    <option value="">Carregando...</option>
-                </select>
-                
-                <button onclick="openNewPeriodModal()" class="text-white bg-brand-800 hover:bg-brand-900 font-medium rounded-lg text-sm px-5 py-2.5 transition-colors shadow-sm">
-                    Novo Período
-                </button>
-            </div>
-        </header>
-
-        <main id="app-content" class="flex flex-col gap-6">
-            <!-- Conteúdo dinâmico injetado aqui -->
-        </main>
+<div id="authView" hidden>
+  <div class="auth"><div class="card dlg authcard">
+    <div><span class="eyebrow">Apontamentos Mensais</span><h1 style="font-size:1.75rem;font-weight:700;letter-spacing:-.015em">Painel de Horas</h1></div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabIn" aria-selected="true">Entrar</button>
+      <button type="button" role="tab" id="tabUp" aria-selected="false">Criar conta</button>
     </div>
+    <form id="authForm" class="dlg" style="padding:0" novalidate>
+      <div id="nameRow" hidden><label class="cap" for="aName">Nome</label><input class="in" id="aName" autocomplete="name" maxlength="60" placeholder="Como quer ser chamado"></div>
+      <div><label class="cap" for="aMail">E-mail</label><input class="in" id="aMail" type="email" autocomplete="email" inputmode="email" placeholder="voce@empresa.com"></div>
+      <div><label class="cap" for="aPass">Senha</label><input class="in" id="aPass" type="password" autocomplete="current-password" placeholder="Mínimo de 8 caracteres"></div>
+      <div id="aMsg" class="box hidden" role="alert"></div>
+      <button class="btn-brand" id="aGo" type="submit" style="padding:12px">Entrar</button>
+      <button class="linkbtn" id="aForgot" type="button">Esqueci minha senha</button>
+    </form>
+  </div></div>
+</div>
 
-    <!-- Modal: Salário Base -->
-    <dialog id="salaryModal" class="bg-white">
-        <div class="p-6">
-            <h2 class="text-xl font-display font-bold mb-2" id="salaryModalTitle">Salário Base</h2>
-            <p class="text-sm text-gray-500 mb-6">Este valor será salvo como base global para os próximos períodos criados.</p>
-            
-            <div class="mb-6">
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Valor Mensal (R$)</label>
-                <input type="number" id="inpGlobalSalary" step="0.01" min="0" class="w-full text-xl font-mono p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="0.00">
-            </div>
-            
-            <div class="flex justify-end gap-3">
-                <button type="button" id="btnCancelSalary" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg hidden">Cancelar</button>
-                <button type="button" onclick="saveGlobalSalary()" class="px-5 py-2 text-sm font-medium text-white bg-brand-800 hover:bg-brand-900 rounded-lg">Salvar Salário</button>
-            </div>
-        </div>
-    </dialog>
+<div class="wrap" id="appView" hidden>
+  <header class="card hdr">
+    <div>
+      <span class="eyebrow">Apontamentos Mensais</span>
+      <h1>Painel de Horas</h1>
+    </div>
+    <div class="tools">
+      <button class="btn-soft" id="salBtn" type="button">Alterar Salário Base</button>
+      <select id="periodSel" class="sel" aria-label="Período"><option>Carregando…</option></select>
+      <button class="btn-brand" id="newPeriod" type="button">Novo Período</button>
+      <span class="status" id="status" data-s="saved" role="status">Carregando</span>
+      <span class="who" id="who"></span>
+      <button class="btn-out" id="logout" type="button">Sair</button>
+    </div>
+  </header>
+  <main id="main" class="stack"></main>
+</div>
 
-    <!-- Modal: Novo Período -->
-    <dialog id="periodModal" class="bg-white">
-        <div class="p-6">
-            <h2 class="text-xl font-display font-bold mb-6">Criar Novo Período</h2>
-            
-            <div class="space-y-4 mb-6">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Data Inicial</label>
-                    <input type="date" id="inpNewStart" class="w-full font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Data Final</label>
-                    <input type="date" id="inpNewEnd" class="w-full font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
-                </div>
-            </div>
-            
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('periodModal').close()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button type="button" onclick="createNewPeriod()" class="px-5 py-2 text-sm font-medium text-white bg-brand-800 hover:bg-brand-900 rounded-lg">Criar</button>
-            </div>
-        </div>
-    </dialog>
+<dialog id="salaryModal">
+  <div class="dlg">
+    <h2 id="salTitle">Alterar Salário Base</h2>
+    <p>Este valor será salvo como base para os próximos períodos criados. Períodos já criados mantêm o salário que tinham.</p>
+    <div>
+      <label class="cap" for="inpSalary">Valor Mensal (R$)</label>
+      <input class="in big" type="number" id="inpSalary" step="0.01" min="0" inputmode="decimal" placeholder="0,00">
+    </div>
+    <label class="check hidden" id="applyRow"><input type="checkbox" id="inpApply"><span id="applyTxt"></span></label>
+    <div class="box bad hidden" id="salErr" role="alert"></div>
+    <div class="dact">
+      <button type="button" class="btn-ghost" id="salCancel">Cancelar</button>
+      <button type="button" class="btn-brand" id="salSave">Salvar Salário</button>
+    </div>
+  </div>
+</dialog>
 
-    <!-- Modal: Nota Diária -->
-    <dialog id="noteModal" class="bg-white">
-        <div class="p-6">
-            <h2 class="text-lg font-display font-bold mb-1">Anotações do Dia</h2>
-            <p id="noteDateDisplay" class="text-sm font-mono text-gray-500 mb-4"></p>
-            
-            <input type="hidden" id="inpNoteDate">
-            <textarea id="inpNoteText" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm mb-4" placeholder="Adicione detalhes, projetos, atestados..."></textarea>
-            
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('noteModal').close()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button type="button" onclick="saveNote()" class="px-5 py-2 text-sm font-medium text-white bg-brand-800 hover:bg-brand-900 rounded-lg">Salvar Nota</button>
-            </div>
-        </div>
-    </dialog>
+<dialog id="periodModal">
+  <div class="dlg">
+    <h2>Criar Novo Período</h2>
+    <p>Informe a data inicial e a final. Os feriados nacionais já estão cadastrados.</p>
+    <div class="g2">
+      <div><label class="cap" for="inpStart">Data Inicial</label><input class="in" type="date" id="inpStart"></div>
+      <div><label class="cap" for="inpEnd">Data Final</label><input class="in" type="date" id="inpEnd"></div>
+    </div>
+    <div id="newPrev"></div>
+    <div class="dact">
+      <button type="button" class="btn-ghost" id="perCancel">Cancelar</button>
+      <button type="button" class="btn-brand" id="perCreate">Criar</button>
+    </div>
+  </div>
+</dialog>
 
-    <script>
-        // Estado Global
-        const STORAGE_KEY = 'painel_horas_pro_v1';
-        let state = {
-            globalSalary: null,
-            periods: {},
-            currentId: null
-        };
+<dialog id="noteModal">
+  <div class="dlg">
+    <div><h2>Anotações do Dia</h2><p class="mono" id="noteDate" style="margin-top:4px"></p></div>
+    <textarea class="in" id="inpNote" rows="4" maxlength="500" aria-label="Anotação do dia" placeholder="Adicione detalhes, projetos, atestados..."></textarea>
+    <div class="dact">
+      <button type="button" class="btn-ghost" id="noteCancel">Cancelar</button>
+      <button type="button" class="btn-brand" id="noteSave">Salvar Nota</button>
+    </div>
+  </div>
+</dialog>
 
-        // Arrays e Utilitários
-        const WEEK_DAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-        
-        const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
-        const formatDate = d => d.toISOString().slice(0, 10);
-        const addDays = (s, n) => { const d = parseDate(s); d.setUTCDate(d.getUTCDate() + n); return formatDate(d); };
-        const getDayOfWeek = s => parseDate(s).getUTCDay();
-        const formatBR = s => s.slice(8, 10) + '/' + s.slice(5, 7);
-        const formatBRFull = s => formatBR(s) + '/' + s.slice(0, 4);
-        const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-        const formatHours = n => (Math.round((n || 0) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' h';
+<dialog id="pwdModal">
+  <div class="dlg">
+    <h2>Definir nova senha</h2>
+    <div><label class="cap" for="inpPwd">Nova senha</label><input class="in" type="password" id="inpPwd" autocomplete="new-password" placeholder="Mínimo de 8 caracteres"></div>
+    <div class="box bad hidden" id="pwdErr" role="alert"></div>
+    <div class="dact"><button type="button" class="btn-brand" id="pwdSave">Salvar senha</button></div>
+  </div>
+</dialog>
 
-        // Lógica de Feriados Nacionais (Fixos e Móveis)
-        const holidaysCache = {};
-        
-        function calculateEaster(year) {
-            const a = year % 19, b = Math.floor(year / 100), c = year % 100;
-            const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
-            const g = Math.floor((b - f + 1) / 3);
-            const h = (19 * a + b - d - g + 15) % 30;
-            const i = Math.floor(c / 4), k = c % 4;
-            const l = (32 + 2 * e + 2 * i - h - k) % 7;
-            const m = Math.floor((a + 11 * h + 22 * l) / 451);
-            const month = Math.floor((h + l - 7 * m + 114) / 31);
-            const day = ((h + l - 7 * m + 114) % 31) + 1;
-            return new Date(Date.UTC(year, month - 1, day));
-        }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+const WD=['dom','seg','ter','qua','qui','sex','sáb'];
+const pad=n=>String(n).padStart(2,'0');
+const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d))};
+const fd=d=>d.toISOString().slice(0,10);
+const add=(s,n)=>{const d=pd(s);d.setUTCDate(d.getUTCDate()+n);return fd(d)};
+const dow=s=>pd(s).getUTCDay();
+const monOf=s=>add(s,-((dow(s)+6)%7));
+const br=s=>s.slice(8,10)+'/'+s.slice(5,7);
+const brFull=s=>br(s)+'/'+s.slice(0,4);
+const BRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const hh=n=>(Math.round((n||0)*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2})+' h';
+const $=s=>document.querySelector(s);
+const isDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-        function getHolidays(year) {
-            if(holidaysCache[year]) return holidaysCache[year];
-            
-            // Feriados Fixos
-            const fixed = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '12-25'].map(d => `${year}-${d}`);
-            
-            // Feriados Móveis baseados na Páscoa
-            const easter = calculateEaster(year);
-            const carnival = new Date(easter); carnival.setUTCDate(carnival.getUTCDate() - 47);
-            const goodFriday = new Date(easter); goodFriday.setUTCDate(goodFriday.getUTCDate() - 2);
-            const corpus = new Date(easter); corpus.setUTCDate(corpus.getUTCDate() + 60);
+const cfg=window.PAINEL_CONFIG||{};
+const configured=/^https:\/\/[^/]+/.test(cfg.url||'')&&!/xxxx|COLE/i.test(cfg.url)&&(cfg.anonKey||'').length>20&&!/COLE/i.test(cfg.anonKey);
+const show=(id,on)=>{$('#'+id).hidden=!on};
+if(!configured||!window.supabase){show('setupView',true);return}
+const sb=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
-            const mobile = [carnival, goodFriday, corpus].map(formatDate);
-            
-            holidaysCache[year] = new Set([...fixed, ...mobile]);
-            return holidaysCache[year];
-        }
+/* estado: periods[id] = {id,start,end,salary,holidays(descontar),notes,days:{data:{n,a,note}},loaded} */
+const state={user:null,name:'',salary:0,periods:{},holidays:[],sel:null};
 
-        function isHoliday(dateStr) {
-            const year = parseInt(dateStr.slice(0, 4));
-            const holSet = getHolidays(year);
-            return holSet.has(dateStr);
-        }
+/* ---------- feriados nacionais ---------- */
+function easter(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3);
+  const h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return `${y}-${pad(mo)}-${pad(da)}`;
+}
+const natCache={};
+function national(y){
+  if(natCache[y])return natCache[y];
+  const e=easter(y),f=(md,n)=>[`${y}-${md}`,n];
+  return natCache[y]=[f('01-01','Ano Novo'),[add(e,-48),'Carnaval'],[add(e,-47),'Carnaval'],
+    [add(e,-2),'Sexta Santa'],f('04-21','Tiradentes'),f('05-01','Dia do Trabalho'),[add(e,60),'Corpus Christi'],
+    f('09-07','Independência'),f('10-12','N. Sra. Aparecida'),f('11-02','Finados'),
+    f('11-15','Proc. República'),f('11-20','Consciência Negra'),f('12-25','Natal')];
+}
+function holMap(start,end){
+  const m=new Map();
+  if(!isDate(start)||!isDate(end)||end<start)return m;
+  for(let y=+start.slice(0,4);y<=+end.slice(0,4);y++)national(y).forEach(([d,n])=>m.set(d,n));
+  state.holidays.forEach(d=>{if(!m.has(d))m.set(d,'Feriado Local')});
+  return m;
+}
 
-        function getHolidayName(dateStr) {
-            if(!isHoliday(dateStr)) return null;
-            const [,m,d] = dateStr.split('-');
-            const md = `${m}-${d}`;
-            const map = {
-                '01-01': 'Ano Novo', '04-21': 'Tiradentes', '05-01': 'Dia do Trabalho',
-                '09-07': 'Independência', '10-12': 'N. Sra. Aparecida', '11-02': 'Finados',
-                '11-15': 'Proc. República', '12-25': 'Natal'
-            };
-            if(map[md]) return map[md];
-            // Inferência simples para móveis (móveis caem em dias da semana específicos)
-            const w = getDayOfWeek(dateStr);
-            if(w === 2) return 'Carnaval';
-            if(w === 5) return 'Sexta Santa';
-            if(w === 4) return 'Corpus Christi';
-            return 'Feriado';
-        }
+/* ---------- cálculo ---------- */
+function eachDay(p){
+  const out=[];if(!isDate(p.start)||!isDate(p.end)||p.end<p.start)return out;
+  let d=p.start,k=0;while(d<=p.end&&k<400){out.push(d);d=add(d,1);k++}return out;
+}
+const discounts=p=>p.holidays!==false;
+const salaryOf=p=>(+p.salary>0?+p.salary:+state.salary||0);
+function calc(p){
+  const hol=holMap(p.start,p.end),days=p.days||{},disc=discounts(p);
+  let work=0,n=0,a=0,total=0;
+  for(const d of eachDay(p)){
+    total++;const w=dow(d);
+    if(w!==0&&w!==6&&!(disc&&hol.has(d)))work++;
+    const e=days[d];if(e){n+=+e.n||0;a+=+e.a||0}
+  }
+  const periodHours=work*8,unit=periodHours?salaryOf(p)/periodHours:0;
+  return {totalDays:total,work,periodHours,n,a,total:n+a,unit,valN:unit*n,valA:unit*a,valT:unit*(n+a)};
+}
 
-        function init() {
-            try {
-                const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-                if (data) {
-                    state.globalSalary = data.globalSalary || null;
-                    state.periods = data.periods || {};
-                    state.currentId = data.currentId || null;
-                }
-            } catch (e) { console.error("Erro no localstorage", e); }
+/* ---------- mensagens ---------- */
+function errMsg(e){
+  const m=String((e&&e.message)||e||''),c=e&&e.code;
+  if(/Invalid login/i.test(m))return 'E-mail ou senha incorretos.';
+  if(/already registered/i.test(m))return 'Este e-mail já tem cadastro. Use "Entrar".';
+  if(/not confirmed/i.test(m))return 'Confirme seu e-mail pelo link que enviamos antes de entrar.';
+  if(/rate limit|too many/i.test(m)||c==='over_email_send_rate_limit')return 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
+  if(/password/i.test(m)&&/(short|least|weak)/i.test(m))return 'A senha precisa ter pelo menos 8 caracteres.';
+  if(/valid email|invalid.*email/i.test(m))return 'Informe um e-mail válido.';
+  if(c==='23P01')return 'Este intervalo cruza outro período seu.';
+  if(/Cadastro permitido/i.test(m))return m.replace(/^.*Cadastro permitido/,'Cadastro permitido');
+  if(/Failed to fetch|NetworkError|network/i.test(m))return 'Sem conexão com o servidor. Verifique sua internet.';
+  return 'Algo deu errado. Tente de novo.';
+}
 
-            // Bloqueio obrigatório de Salário
-            if (!state.globalSalary) {
-                const modal = document.getElementById('salaryModal');
-                document.getElementById('btnCancelSalary').classList.add('hidden');
-                document.getElementById('salaryModalTitle').innerText = "Bem-vindo! Qual seu Salário Base?";
-                
-                // Evita fechar com ESC
-                modal.addEventListener('cancel', (e) => { e.preventDefault(); });
-                modal.showModal();
-            } else {
-                validateSelection();
-                renderApp();
-            }
-        }
+/* ---------- gravação (fila serial, em lote) ---------- */
+const dirtyDays=new Map(),dirtyPeriods=new Set();let timer=null,saving=false;
+function setStatus(s){
+  const el=$('#status');el.dataset.s=s;
+  el.textContent={saved:'Salvo',saving:'Salvando…',error:'Falha ao salvar · tentar de novo'}[s];
+  el.style.cursor=s==='error'?'pointer':'';
+}
+$('#status').onclick=()=>{if($('#status').dataset.s==='error')flush()};
+function schedule(){setStatus('saving');clearTimeout(timer);timer=setTimeout(flush,600)}
+function markDay(p,d){if(!dirtyDays.has(p.id))dirtyDays.set(p.id,new Set());dirtyDays.get(p.id).add(d);schedule()}
+function markPeriod(p){dirtyPeriods.add(p.id);schedule()}
+async function flush(){
+  if(saving){timer=setTimeout(flush,300);return}
+  saving=true;
+  try{
+    for(const id of [...dirtyPeriods]){
+      const p=state.periods[id];dirtyPeriods.delete(id);if(!p)continue;
+      const {error}=await sb.from('periods').update({notes:p.notes||'',discount_holidays:discounts(p),salary:salaryOf(p)}).eq('id',id);
+      if(error){dirtyPeriods.add(id);throw error}
+    }
+    for(const [id,set] of [...dirtyDays]){
+      const p=state.periods[id];if(!p){dirtyDays.delete(id);continue}
+      const days=[...set];set.clear();
+      const up=[],del=[];
+      for(const d of days){
+        const e=p.days[d];
+        if(e&&(e.n||e.a||e.note))up.push({period_id:id,user_id:state.user.id,day:d,normal_hours:e.n||0,extra_hours:e.a||0,note:e.note||null});
+        else del.push(d);
+      }
+      try{
+        if(up.length){const {error}=await sb.from('entries').upsert(up,{onConflict:'period_id,day'});if(error)throw error}
+        if(del.length){const {error}=await sb.from('entries').delete().eq('period_id',id).in('day',del);if(error)throw error}
+      }catch(err){days.forEach(d=>set.add(d));throw err}
+      if(!set.size)dirtyDays.delete(id);
+    }
+    setStatus('saved');
+  }catch(e){console.error(e);setStatus('error')}finally{saving=false}
+}
+async function run(fn){ // operação única com status
+  setStatus('saving');
+  try{const r=await fn();setStatus('saved');return r}catch(e){console.error(e);setStatus('error');throw e}
+}
 
-        function saveData() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            } catch (e) {}
-        }
+/* ---------- seleção ---------- */
+const sorted=()=>Object.values(state.periods).sort((a,b)=>b.start<a.start?-1:1);
+function pickDefault(){
+  const today=fd(new Date()),list=sorted();
+  const hit=list.find(p=>p.start<=today&&today<=p.end);
+  return (hit||list[0]||{}).id||null;
+}
+const cur=()=>state.periods[state.sel];
+function cleanDay(p,d){const o=p.days&&p.days[d];if(o&&!o.n&&!o.a&&!o.note)delete p.days[d]}
+const toPeriod=r=>({id:r.id,start:r.start_date,end:r.end_date,salary:+r.salary,holidays:r.discount_holidays,notes:r.notes||'',days:{},loaded:false});
+async function ensureEntries(id){
+  const p=state.periods[id];if(!p||p.loaded)return;
+  const {data,error}=await sb.from('entries').select('day,normal_hours,extra_hours,note').eq('period_id',id).limit(1000);
+  if(error)throw error;
+  p.days={};
+  (data||[]).forEach(r=>{
+    const o={};if(+r.normal_hours)o.n=+r.normal_hours;if(+r.extra_hours)o.a=+r.extra_hours;if(r.note)o.note=r.note;
+    if(o.n||o.a||o.note)p.days[r.day]=o;
+  });
+  p.loaded=true;
+}
 
-        function validateSelection() {
-            const sorted = Object.values(state.periods).sort((a,b) => b.start.localeCompare(a.start));
-            if(sorted.length === 0) {
-                state.currentId = null;
-            } else if (!state.currentId || !state.periods[state.currentId]) {
-                state.currentId = sorted[0].id;
-            }
-        }
+/* ---------- janelas ---------- */
+const salaryModal=$('#salaryModal'),periodModal=$('#periodModal'),noteModal=$('#noteModal'),pwdModal=$('#pwdModal');
+let salaryRequired=false;
+salaryModal.addEventListener('cancel',e=>{if(salaryRequired)e.preventDefault()});
+salaryModal.addEventListener('close',()=>{if(salaryRequired&&!(+state.salary>0)&&state.user)setTimeout(()=>openSalary(true),0)});
 
-        window.openSalaryModal = function() {
-            const modal = document.getElementById('salaryModal');
-            document.getElementById('salaryModalTitle').innerText = "Alterar Salário Base";
-            document.getElementById('inpGlobalSalary').value = state.globalSalary || '';
-            document.getElementById('btnCancelSalary').classList.remove('hidden');
-            document.getElementById('btnCancelSalary').onclick = () => modal.close();
-            
-            // Remove block behavior
-            modal.oncancel = null; 
-            modal.showModal();
-        }
+function openSalary(required){
+  salaryRequired=!!required&&!(+state.salary>0);
+  const base=+state.salary||0,p=cur();
+  $('#salTitle').textContent=salaryRequired?'Bem-vindo! Qual seu Salário Base?':'Alterar Salário Base';
+  $('#inpSalary').value=base>0?base:'';
+  $('#salCancel').classList.toggle('hidden',salaryRequired);
+  $('#applyRow').classList.toggle('hidden',!(p&&base>0));
+  $('#inpApply').checked=false;
+  if(p)$('#applyTxt').textContent=`Aplicar também ao período selecionado (${br(p.start)} → ${brFull(p.end)})`;
+  $('#salErr').classList.add('hidden');
+  if(!salaryModal.open)salaryModal.showModal();
+}
+$('#salBtn').onclick=()=>openSalary(false);
+$('#salCancel').onclick=()=>{salaryRequired=false;salaryModal.close()};
+async function saveSalary(){
+  const v=Math.round(parseFloat($('#inpSalary').value)*100)/100;
+  const err=$('#salErr');
+  if(!(v>0)){err.textContent='Informe um valor maior que zero.';err.classList.remove('hidden');return}
+  try{
+    await run(()=>sb.from('profiles').upsert({id:state.user.id,display_name:state.name,salary:v}).then(r=>{if(r.error)throw r.error}));
+  }catch(e){err.textContent=errMsg(e);err.classList.remove('hidden');return}
+  state.salary=v;
+  const p=cur();
+  if($('#inpApply').checked&&p){p.salary=v;markPeriod(p)}
+  salaryRequired=false;salaryModal.close();refresh();
+}
+$('#salSave').onclick=saveSalary;
+$('#inpSalary').onkeydown=e=>{if(e.key==='Enter')saveSalary()};
 
-        window.saveGlobalSalary = function() {
-            const val = parseFloat(document.getElementById('inpGlobalSalary').value);
-            if (val > 0) {
-                state.globalSalary = val;
-                saveData();
-                document.getElementById('salaryModal').close();
-                validateSelection();
-                renderApp();
-            }
-        }
+function defaultEnd(start){const e=pd(start);e.setUTCMonth(e.getUTCMonth()+1,e.getUTCDate()-1);return fd(e)}
+function defaultStart(){
+  const last=sorted()[0];
+  if(last)return add(last.end,1);
+  const t=new Date();let y=t.getFullYear(),m=t.getMonth()+1;
+  if(t.getDate()<16){m--;if(m<1){m=12;y--}}
+  return `${y}-${pad(m)}-16`;
+}
+function periodCheck(){
+  const s=$('#inpStart').value,e=$('#inpEnd').value;
+  if(!isDate(s)||!isDate(e))return {idle:true};
+  if(s>e)return {err:'A data inicial não pode ser maior que a final.'};
+  if((pd(e)-pd(s))/864e5>400)return {err:'O período não pode exceder 400 dias.'};
+  const hit=sorted().find(p=>s<=p.end&&e>=p.start);
+  if(hit)return {err:`Conflito com o período ${br(hit.start)} a ${brFull(hit.end)}.`};
+  return {};
+}
+function periodPreview(msg){
+  const r=periodCheck(),box=$('#newPrev'),btn=$('#perCreate');
+  if(msg){box.innerHTML=`<div class="box bad" role="alert">${esc(msg)}</div>`;return}
+  if(r.idle){box.innerHTML='<div class="box idle">Escolha as datas para ver o resumo.</div>';btn.disabled=true;return}
+  if(r.err){box.innerHTML=`<div class="box bad" role="alert">${esc(r.err)}</div>`;btn.disabled=true;return}
+  const s=$('#inpStart').value,e=$('#inpEnd').value,t={start:s,end:e,salary:state.salary,days:{}},c=calc(t),hm=holMap(s,e);
+  const hl=eachDay(t).filter(d=>hm.has(d)&&dow(d)!==0&&dow(d)!==6);
+  box.innerHTML=`<div class="box ok"><div><b>${c.totalDays}</b> dias totais · <b>${c.work}</b> dias úteis</div>
+    <div><b>${hh(c.periodHours)}</b> esperadas neste período · hora a <b>${BRL.format(c.unit)}</b></div>
+    <div class="chips">${hl.length?hl.map(d=>`<span class="chip"><i>${br(d)}</i>${esc(hm.get(d))}</span>`).join(''):'<span class="dim" style="font-size:.8rem">Nenhum feriado em dia útil.</span>'}</div></div>`;
+  btn.disabled=false;
+}
+function openNewPeriod(){
+  if(!(+state.salary>0)){openSalary(true);return}
+  const s=defaultStart();$('#inpStart').value=s;$('#inpEnd').value=defaultEnd(s);
+  periodPreview();periodModal.showModal();
+}
+$('#newPeriod').onclick=openNewPeriod;
+$('#perCancel').onclick=()=>periodModal.close();
+$('#inpStart').oninput=()=>{const v=$('#inpStart').value;if(isDate(v))$('#inpEnd').value=defaultEnd(v);periodPreview()};
+$('#inpEnd').oninput=()=>periodPreview();
+$('#perCreate').onclick=async()=>{
+  const c=periodCheck();if(c.err||c.idle)return;
+  const s=$('#inpStart').value,e=$('#inpEnd').value;
+  try{
+    const row=await run(async()=>{
+      const {data,error}=await sb.from('periods').insert({start_date:s,end_date:e,salary:state.salary,discount_holidays:true,user_id:state.user.id}).select().single();
+      if(error)throw error;return data;
+    });
+    const p=toPeriod(row);p.loaded=true;state.periods[p.id]=p;state.sel=p.id;
+    periodModal.close();refresh();
+  }catch(err){periodPreview(errMsg(err))}
+};
 
-        window.openNewPeriodModal = function() {
-            if (!state.globalSalary) {
-                openSalaryModal(); // Força criar salário primeiro
-                return;
-            }
-            const modal = document.getElementById('periodModal');
-            
-            // Pre-fill inteligente
-            const sorted = Object.values(state.periods).sort((a,b) => b.start.localeCompare(a.start));
-            if (sorted.length > 0) {
-                document.getElementById('inpNewStart').value = addDays(sorted[0].end, 1);
-                
-                const dEnd = parseDate(addDays(sorted[0].end, 1));
-                dEnd.setUTCMonth(dEnd.getUTCMonth() + 1);
-                dEnd.setUTCDate(15); // Dia 15 por padrão
-                document.getElementById('inpNewEnd').value = formatDate(dEnd);
-            }
-            
-            modal.showModal();
-        }
+function openNote(d){
+  const p=cur();if(!p)return;
+  $('#noteDate').textContent=`Data: ${WD[dow(d)]}, ${brFull(d)}`;
+  noteModal.dataset.d=d;$('#inpNote').value=(p.days[d]&&p.days[d].note)||'';
+  noteModal.showModal();$('#inpNote').focus();
+}
+$('#noteCancel').onclick=()=>noteModal.close();
+$('#noteSave').onclick=()=>{
+  const p=cur(),d=noteModal.dataset.d;if(!p||!d)return;
+  const t=$('#inpNote').value.trim(),o=p.days[d]||(p.days[d]={});
+  if(t)o.note=t.slice(0,500);else delete o.note;
+  cleanDay(p,d);markDay(p,d);noteModal.close();updateDerived();
+};
 
-        window.createNewPeriod = function() {
-            const start = document.getElementById('inpNewStart').value;
-            const end = document.getElementById('inpNewEnd').value;
-            
-            if (start && end && start <= end) {
-                const id = `p_${start}_${end}`;
-                state.periods[id] = {
-                    id: id,
-                    start: start,
-                    end: end,
-                    salary: state.globalSalary, // Snapshot do momento
-                    days: {}
-                };
-                state.currentId = id;
-                saveData();
-                document.getElementById('periodModal').close();
-                renderApp();
-            }
-        }
+/* ---------- render ---------- */
+const BUBBLE='<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>';
+const CAL='<svg width="30" height="30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
 
-        function getDaysInPeriod(p) {
-            const days = [];
-            let d = p.start;
-            let failsafe = 0;
-            while (d <= p.end && failsafe < 400) {
-                days.push(d);
-                d = addDays(d, 1);
-                failsafe++;
-            }
-            return days;
-        }
+function renderSelect(){
+  const sel=$('#periodSel'),list=sorted();
+  sel.innerHTML=list.map(p=>`<option value="${p.id}">${br(p.start)} → ${brFull(p.end)}</option>`).join('')||'<option value="">Nenhum período</option>';
+  sel.disabled=!list.length;
+  if(state.sel)sel.value=state.sel;
+}
+function summaryHTML(p){
+  const c=calc(p),disc=discounts(p);
+  return `
+  <div class="hero">
+    <div><span class="cap">Total a Receber</span><div class="big">${BRL.format(c.valT)}</div></div>
+    <div class="base"><span>Base: ${BRL.format(salaryOf(p))}</span><span class="mono">${BRL.format(c.unit)}/h</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><span class="cap">Dias Úteis</span><span class="v">${c.work}</span>
+      <button class="linkbtn" type="button" data-act="togglehol" title="Alternar desconto de feriados neste período">${disc?'Descontados feriados':'Sem descontar feriados'}</button></div>
+    <div class="stat"><span class="cap">Horas do Período</span><span class="v">${hh(c.periodHours)}</span><span class="s">${c.work} dias × 8h</span></div>
+    <div class="stat n"><span class="cap">Lançado (N)</span><span class="v">${hh(c.n)}</span><span class="s">Normais · ${BRL.format(c.valN)}</span></div>
+    <div class="stat a"><span class="cap">Lançado (AD)</span><span class="v">${hh(c.a)}</span><span class="s">Adicionais · ${BRL.format(c.valA)}</span></div>
+  </div>`;
+}
+function weeksHTML(p){
+  const hol=holMap(p.start,p.end),days=p.days||{};
+  let mon=monOf(p.start),out='',guard=0;
+  while(mon<=p.end&&guard++<80){
+    const ds=[0,1,2,3,4,5,6].map(i=>add(mon,i));
+    const head=ds.map(d=>{
+      const w=dow(d),off=w===0||w===6,inP=d>=p.start&&d<=p.end,h=inP&&hol.get(d);
+      return `<th class="${off?'wk':''} ${inP?'':'out'}"><span class="dw">${WD[w]}</span><span class="dd ${h?'hol':''}">${br(d)}</span>${h?`<span class="hn" title="${esc(h)}">${esc(h)}</span>`:''}</th>`;
+    }).join('');
+    const row=(k,cls,label)=>`<tr class="${cls}"><td class="lab">${label}</td>`+ds.map(d=>{
+      const inP=d>=p.start&&d<=p.end;
+      if(!inP)return `<td class="out"></td>`;
+      const v=days[d]&&days[d][k]?days[d][k]:'';
+      return `<td class="cell"><input type="number" inputmode="decimal" step="0.5" min="0" max="24" placeholder="" data-d="${d}" data-k="${k}" value="${v}" aria-label="${label} em ${br(d)}"></td>`;
+    }).join('')+`<td class="sumc" data-sum="${k}" data-w="${mon}"></td></tr>`;
+    const nt=`<tr class="rc"><td class="lab">Notas</td>`+ds.map(d=>{
+      const inP=d>=p.start&&d<=p.end;
+      return inP?`<td class="nc"><button type="button" class="nbtn" data-note="${d}" aria-label="Nota de ${br(d)}">${BUBBLE}</button></td>`:`<td class="out"></td>`;
+    }).join('')+`<td class="sumc"></td></tr>`;
+    out+=`<section class="week"><header><h3>Semana: ${br(mon)} a ${br(add(mon,6))}</h3></header>
+      <div class="scroll"><table><thead><tr><th class="type">Tipo</th>${head}<th class="sum">Soma</th></tr></thead>
+      <tbody>${row('n','rn','Normais')}${row('a','ra','Adicionais')}${nt}</tbody></table></div></section>`;
+    mon=add(mon,7);
+  }
+  return out;
+}
+function bottomHTML(){
+  return `<section class="card panel"><h3>Feriados Adicionais</h3>
+      <p>Cadastre feriados municipais, estaduais ou recessos. Eles são descontados de todos os seus períodos.</p>
+      <div class="row"><input class="in" type="date" id="holNew" aria-label="Novo feriado" style="flex:1 1 150px"><button class="btn-grey" type="button" data-act="addhol">Adicionar</button></div>
+      <div class="chips" id="holChips"></div>
+      <details class="nat"><summary>Feriados nacionais considerados neste período</summary><div class="chips" id="natChips"></div></details>
+    </section>
+    <section class="card panel"><h3>Anotações do Período</h3>
+      <p>Projetos, códigos e observações gerais deste fechamento.</p>
+      <textarea class="in" id="pNotes" rows="5" maxlength="2000" placeholder="Ex.: 5073L.01.09 — cedae" aria-label="Anotações do período"></textarea>
+    </section>`;
+}
+function renderMain(){
+  const m=$('#main'),p=cur();
+  if(!p){
+    const need=!(+state.salary>0);
+    m.innerHTML=`<div class="card empty"><div class="ic">${CAL}</div><h2>Pronto para começar</h2>
+      <p>${need?'Cadastre o salário base e depois crie o primeiro período de fechamento.':'Crie um novo período de fechamento e informe as datas inicial e final para gerar as semanas.'}</p>
+      <button class="btn-brand" type="button" data-act="newperiod" style="padding:12px 24px">${need?'Cadastrar Salário Base':'Criar Primeiro Período'}</button></div>`;
+    return;
+  }
+  m.innerHTML=`<div class="summary" id="summary"></div>
+    <div class="sechead"><h2>Apontamentos Semanais</h2><div class="acts">
+      <button class="btn-out" type="button" data-act="fill">Preencher 8h</button>
+      <button class="btn-out red" type="button" data-act="clear">Limpar</button>
+      <button class="btn-out redfill" type="button" data-act="delete">Excluir Período</button></div></div>
+    <div class="weeks" id="weeks">${weeksHTML(p)}</div>
+    <div class="bottom">${bottomHTML()}</div>`;
+  $('#pNotes').value=p.notes||'';
+  renderChips(p);updateDerived();
+}
+function renderChips(p){
+  p=p||cur();const nat=$('#natChips'),el=$('#holChips');if(!el||!p)return;
+  const natSet=new Map();
+  for(let y=+p.start.slice(0,4);y<=+p.end.slice(0,4);y++)national(y).forEach(([d,n])=>{if(d>=p.start&&d<=p.end)natSet.set(d,n)});
+  nat.innerHTML=[...natSet.keys()].sort().map(d=>`<span class="chip"><i>${br(d)}</i>${esc(natSet.get(d))}</span>`).join('')||'<span class="dim">Nenhum feriado nacional neste intervalo.</span>';
+  el.innerHTML=[...state.holidays].sort().map(d=>`<span class="chip"><i>${brFull(d)}</i><button type="button" data-rm="${d}" aria-label="Remover ${brFull(d)}">&times;</button></span>`).join('')||'<span class="dim">Nenhum feriado adicional cadastrado.</span>';
+}
+function updateDerived(){
+  const p=cur();if(!p)return;
+  $('#summary').innerHTML=summaryHTML(p);
+  const days=p.days||{},w=(d,k)=>+((days[d]||{})[k])||0;
+  document.querySelectorAll('[data-sum]').forEach(td=>{
+    const mon=td.dataset.w,k=td.dataset.sum;let s=0;
+    for(let i=0;i<7;i++){const d=add(mon,i);if(d>=p.start&&d<=p.end)s+=w(d,k)}
+    td.textContent=hh(s);
+  });
+  document.querySelectorAll('[data-note]').forEach(b=>{
+    const d=b.dataset.note,t=(days[d]&&days[d].note)||'';
+    b.classList.toggle('has',!!t);b.title=t||'Adicionar nota';
+  });
+}
 
-        function calculateTotals(p) {
-            let workDaysCount = 0;
-            let sumNormais = 0;
-            let sumAdicionais = 0;
-            const days = p.days || {};
+/* ---------- ações ---------- */
+const armed={};
+function arm(btn,text,fn){
+  const act=btn.dataset.act;
+  if(armed[act]){clearTimeout(armed[act].t);delete armed[act];fn();return}
+  const label=btn.textContent;btn.classList.add('arm');btn.textContent=text;
+  armed[act]={t:setTimeout(()=>{delete armed[act];btn.classList.remove('arm');btn.textContent=label},4000)};
+}
+const main=$('#main');
+let notesTimer=null;
+main.addEventListener('input',e=>{
+  const i=e.target,p=cur();if(!p)return;
+  if(i.matches('input[data-d]')){
+    const v=parseFloat(i.value),d=i.dataset.d,k=i.dataset.k;
+    const o=p.days[d]||(p.days[d]={});
+    if(isFinite(v)&&v>0)o[k]=Math.min(24,Math.round(v*2)/2);else delete o[k];
+    cleanDay(p,d);markDay(p,d);updateDerived();
+  }else if(i.id==='pNotes'){p.notes=i.value;clearTimeout(notesTimer);notesTimer=setTimeout(()=>markPeriod(p),400)}
+});
+main.addEventListener('click',async e=>{
+  const p=cur(),nb=e.target.closest('[data-note]');
+  if(nb){openNote(nb.dataset.note);return}
+  const rm=e.target.closest('[data-rm]');
+  if(rm){
+    const d=rm.dataset.rm;
+    try{await run(async()=>{const {error}=await sb.from('custom_holidays').delete().eq('day',d);if(error)throw error});
+      state.holidays=state.holidays.filter(x=>x!==d);renderMain()}catch(_){}
+    return;
+  }
+  const b=e.target.closest('[data-act]');if(!b)return;
+  switch(b.dataset.act){
+    case 'newperiod':openNewPeriod();break;
+    case 'togglehol':if(p){p.holidays=!discounts(p);markPeriod(p);renderMain()}break;
+    case 'addhol':{
+      const v=$('#holNew').value;
+      if(isDate(v)&&!state.holidays.includes(v)){
+        try{await run(async()=>{const {error}=await sb.from('custom_holidays').upsert({user_id:state.user.id,day:v,name:'Feriado Local'},{onConflict:'user_id,day'});if(error)throw error});
+          state.holidays.push(v);renderMain()}catch(_){}
+      }
+      break}
+    case 'fill':if(p){
+      const hol=discounts(p)?holMap(p.start,p.end):new Map();
+      for(const d of eachDay(p)){
+        const w=dow(d);if(w===0||w===6||hol.has(d))continue;
+        const o=p.days[d]||(p.days[d]={});
+        if(!o.n){o.n=8;markDay(p,d)}
+      }
+      renderMain()}break;
+    case 'clear':arm(b,'Confirmar?',()=>{
+      Object.keys(p.days).forEach(d=>{delete p.days[d].n;delete p.days[d].a;cleanDay(p,d);markDay(p,d)});
+      renderMain()});break;
+    case 'delete':arm(b,'Confirmar exclusão',async()=>{
+      const id=state.sel;
+      try{await run(async()=>{const {error}=await sb.from('periods').delete().eq('id',id);if(error)throw error});
+        delete state.periods[id];dirtyDays.delete(id);dirtyPeriods.delete(id);
+        state.sel=pickDefault();await afterSelect()}catch(_){}
+    });break;
+  }
+});
+async function afterSelect(){
+  renderSelect();
+  const p=cur();
+  if(p&&!p.loaded){
+    $('#main').innerHTML='<div class="card empty"><p>Carregando lançamentos…</p></div>';
+    try{await ensureEntries(p.id)}catch(e){console.error(e);$('#main').innerHTML='<div class="card empty"><p>Não foi possível carregar este período.</p></div>';return}
+  }
+  renderMain();
+}
+$('#periodSel').onchange=e=>{state.sel=e.target.value;afterSelect()};
 
-            for (const d of getDaysInPeriod(p)) {
-                const w = getDayOfWeek(d);
-                const isWknd = (w === 0 || w === 6);
-                const isHol = isHoliday(d);
-                
-                if (!isWknd && !isHol) {
-                    workDaysCount++;
-                }
+function refresh(){
+  if(!state.sel||!state.periods[state.sel])state.sel=pickDefault();
+  renderSelect();renderMain();
+}
 
-                if (days[d]) {
-                    sumNormais += parseFloat(days[d].n || 0);
-                    sumAdicionais += parseFloat(days[d].a || 0);
-                }
-            }
+/* ---------- login ---------- */
+let mode='in';
+function setMode(m){
+  mode=m;
+  $('#tabIn').setAttribute('aria-selected',m==='in');$('#tabUp').setAttribute('aria-selected',m==='up');
+  $('#nameRow').hidden=m!=='up';$('#aGo').textContent=m==='in'?'Entrar':'Criar conta';
+  $('#aPass').autocomplete=m==='in'?'current-password':'new-password';
+  $('#aForgot').hidden=m!=='in';authMsg('');
+}
+function authMsg(t,kind){const b=$('#aMsg');b.textContent=t||'';b.className='box '+(kind||'bad')+(t?'':' hidden')}
+$('#tabIn').onclick=()=>setMode('in');$('#tabUp').onclick=()=>setMode('up');
+$('#authForm').addEventListener('submit',async e=>{
+  e.preventDefault();authMsg('');
+  const email=$('#aMail').value.trim(),password=$('#aPass').value,name=$('#aName').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){authMsg('Informe um e-mail válido.');return}
+  if(mode==='up'&&!name){authMsg('Informe seu nome.');return}
+  if(password.length<8){authMsg('A senha precisa ter pelo menos 8 caracteres.');return}
+  $('#aGo').disabled=true;
+  try{
+    if(mode==='up'){
+      const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name},emailRedirectTo:location.origin+location.pathname}});
+      if(error)throw error;
+      if(!data.session)authMsg(`Enviamos um link de confirmação para ${email}. Abra o e-mail e depois volte para entrar.`,'ok');
+    }else{
+      const {error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+    }
+  }catch(err){authMsg(errMsg(err))}finally{$('#aGo').disabled=false}
+});
+$('#aForgot').onclick=async()=>{
+  const email=$('#aMail').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){authMsg('Digite seu e-mail acima e clique de novo em "Esqueci minha senha".');return}
+  try{
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    if(error)throw error;authMsg('Se este e-mail tiver cadastro, enviamos o link para criar uma nova senha.','ok');
+  }catch(err){authMsg(errMsg(err))}
+};
+$('#pwdSave').onclick=async()=>{
+  const v=$('#inpPwd').value,er=$('#pwdErr');
+  if(v.length<8){er.textContent='A senha precisa ter pelo menos 8 caracteres.';er.classList.remove('hidden');return}
+  const {error}=await sb.auth.updateUser({password:v});
+  if(error){er.textContent=errMsg(error);er.classList.remove('hidden');return}
+  pwdModal.close();
+};
+$('#logout').onclick=async()=>{
+  try{clearTimeout(timer);await flush()}catch(_){}
+  await sb.auth.signOut();
+};
 
-            const periodHours = workDaysCount * 8;
-            const salary = p.salary;
-            const hourlyRate = periodHours > 0 ? salary / periodHours : 0;
-            const totalHours = sumNormais + sumAdicionais;
-            
-            return {
-                workDaysCount, periodHours,
-                sumNormais, sumAdicionais, totalHours,
-                hourlyRate,
-                valTotal: hourlyRate * totalHours
-            };
-        }
+/* ---------- sessão ---------- */
+let activeUser;  // undefined até a primeira verificação de sessão
+async function loadAll(user){
+  state.user=user;
+  $('#main').innerHTML='<div class="card empty"><p>Carregando seus períodos…</p></div>';
+  const [prof,per,hol]=await Promise.all([
+    sb.from('profiles').select('display_name,salary').eq('id',user.id).maybeSingle(),
+    sb.from('periods').select('*').order('start_date',{ascending:false}),
+    sb.from('custom_holidays').select('day').order('day')]);
+  if(per.error)throw per.error;
+  state.name=(prof.data&&prof.data.display_name)||(user.user_metadata&&user.user_metadata.display_name)||user.email.split('@')[0];
+  state.salary=(prof.data&&+prof.data.salary>0)?+prof.data.salary:0;
+  state.periods={};per.data.forEach(r=>{const p=toPeriod(r);state.periods[p.id]=p});
+  state.holidays=(hol.data||[]).map(r=>r.day);
+  state.sel=pickDefault();
+  $('#who').textContent=state.name;
+  await afterSelect();
+  if(!(+state.salary>0))openSalary(true);
+}
+async function handleSession(session){
+  const uid=session&&session.user?session.user.id:null;
+  if(uid===activeUser)return;
+  activeUser=uid;
+  if(!uid){
+    state.user=null;state.periods={};state.holidays=[];state.sel=null;
+    dirtyDays.clear();dirtyPeriods.clear();salaryRequired=false;
+    [salaryModal,periodModal,noteModal].forEach(d=>d.open&&d.close());
+    show('appView',false);show('authView',true);setMode('in');$('#aPass').value='';
+    return;
+  }
+  show('authView',false);show('appView',true);setStatus('saved');
+  try{await loadAll(session.user)}catch(e){
+    console.error(e);
+    $('#main').innerHTML=`<div class="card empty"><h2>Não foi possível carregar seus dados</h2><p>${esc(errMsg(e))} Se for a primeira vez, confirme que o arquivo schema.sql foi executado no Supabase.</p><button class="btn-brand" type="button" onclick="location.reload()">Tentar de novo</button></div>`;
+  }
+}
+sb.auth.onAuthStateChange((evt,session)=>{
+  setTimeout(()=>{
+    if(evt==='PASSWORD_RECOVERY'){handleSession(session).then(()=>pwdModal.showModal())}
+    else handleSession(session);
+  },0);
+});
+sb.auth.getSession().then(({data})=>handleSession(data.session));
+sb.rpc('keep_alive').then(()=>{},()=>{}); // mantém o projeto gratuito ativo
+})();
+</script>
 
-        function renderApp() {
-            const appContent = document.getElementById('app-content');
-            const sel = document.getElementById('periodSel');
-            
-            // Popula Selector
-            const sorted = Object.values(state.periods).sort((a,b) => b.start.localeCompare(a.start));
-            sel.innerHTML = sorted.map(p => 
-                `<option value="${p.id}" ${p.id === state.currentId ? 'selected' : ''}>${formatBR(p.start)} → ${formatBRFull(p.end)}</option>`
-            ).join('') || '<option value="">Nenhum período</option>';
-            sel.disabled = sorted.length === 0;
-
-            const p = state.periods[state.currentId];
-            if (!p) {
-                appContent.innerHTML = `
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center flex flex-col items-center justify-center">
-                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                            <span class="text-3xl">📅</span>
-                        </div>
-                        <h2 class="text-xl font-display font-bold text-gray-800 mb-2">Pronto para começar</h2>
-                        <p class="text-gray-500 max-w-md mb-6 font-sans">Crie um novo período de fechamento e informe as datas inicial e final para gerar as planilhas.</p>
-                        <button onclick="openNewPeriodModal()" class="text-white bg-brand-800 hover:bg-brand-900 font-medium rounded-lg px-6 py-3 shadow-sm transition-colors">
-                            Criar Primeiro Período
-                        </button>
-                    </div>`;
-                return;
-            }
-
-            const calc = calculateTotals(p);
-            
-            let html = `
-                <!-- Resumo Header -->
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    
-                    <div class="lg:col-span-1 bg-brand-800 text-brand-50 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-                        <span class="text-xs uppercase tracking-widest font-semibold opacity-80">Total a Receber</span>
-                        <div class="mt-2 text-4xl font-mono font-bold">${BRL.format(calc.valTotal)}</div>
-                        <div class="mt-4 pt-4 border-t border-brand-700/50 flex justify-between text-sm">
-                            <span>Base: ${BRL.format(p.salary)}</span>
-                            <span class="font-mono">${BRL.format(calc.hourlyRate)}/h</span>
-                        </div>
-                    </div>
-
-                    <div class="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center">
-                            <span class="text-xs uppercase font-semibold text-gray-400">Dias Úteis</span>
-                            <span class="text-2xl font-mono text-gray-800 mt-1">${calc.workDaysCount}</span>
-                            <span class="text-xs text-gray-400 mt-1">Descontados Feriados</span>
-                        </div>
-                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center">
-                            <span class="text-xs uppercase font-semibold text-gray-400">Horas do Período</span>
-                            <span class="text-2xl font-mono text-gray-800 mt-1">${formatHours(calc.periodHours)}</span>
-                            <span class="text-xs text-gray-400 mt-1">${calc.workDaysCount} dias × 8h</span>
-                        </div>
-                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center border-b-4 border-brand-500">
-                            <span class="text-xs uppercase font-semibold text-gray-400">Lançado (N)</span>
-                            <span class="text-2xl font-mono text-brand-700 mt-1">${formatHours(calc.sumNormais)}</span>
-                            <span class="text-xs text-gray-400 mt-1">Normais</span>
-                        </div>
-                        <div class="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col justify-center border-b-4 border-accent-500">
-                            <span class="text-xs uppercase font-semibold text-gray-400">Lançado (AD)</span>
-                            <span class="text-2xl font-mono text-accent-700 mt-1">${formatHours(calc.sumAdicionais)}</span>
-                            <span class="text-xs text-gray-400 mt-1">Adicionais</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-between items-end pb-2 border-b border-gray-200 mt-2">
-                    <h2 class="text-xl font-display font-bold">Apontamentos Semanais</h2>
-                    <div class="flex gap-2">
-                        <button onclick="fillNormalHours()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">
-                            Preencher 8h (Dias Úteis)
-                        </button>
-                        <button onclick="clearHours()" class="bg-white border border-red-200 hover:bg-red-50 text-red-600 text-xs px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">
-                            Limpar
-                        </button>
-                        <button onclick="deleteCurrentPeriod()" class="bg-red-100 border border-red-200 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">
-                            Excluir Período
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex flex-col gap-6" id="weeksContainer">
-                    ${generateWeeksHTML(p)}
-                </div>
-            `;
-            
-            appContent.innerHTML = html;
-        }
-
-        function generateWeeksHTML(p) {
-            let currentMonday = parseDate(p.start);
-            const startDayOfWeek = currentMonday.getUTCDay();
-            const offset = startDayOfWeek === 0 ? -6 : -(startDayOfWeek - 1);
-            currentMonday.setUTCDate(currentMonday.getUTCDate() + offset);
-            let currentMondayStr = formatDate(currentMonday);
-
-            let html = '';
-            let failsafe = 0;
-
-            while (currentMondayStr <= p.end && failsafe < 52) {
-                const weekDatesStr = [];
-                for (let i = 0; i < 7; i++) {
-                    weekDatesStr.push(addDays(currentMondayStr, i));
-                }
-
-                // Cabeçalho da Semana
-                let thead = `<thead class="bg-gray-50 border-b border-gray-200"><tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-32 border-r border-gray-200">Tipo</th>`;
-                
-                weekDatesStr.forEach(dStr => {
-                    const isWknd = getDayOfWeek(dStr) === 0 || getDayOfWeek(dStr) === 6;
-                    const inP = dStr >= p.start && dStr <= p.end;
-                    const holName = isHoliday(dStr) ? getHolidayName(dStr) : null;
-                    
-                    let cls = "px-2 py-3 text-center border-r border-gray-200 min-w-[70px]";
-                    if (isWknd) cls += " bg-gray-100/60";
-                    if (!inP) cls += " bg-stripes opacity-50";
-                    
-                    thead += `<th class="${cls}">
-                        <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">${WEEK_DAYS[getDayOfWeek(dStr)]}</span>
-                        <span class="block text-sm font-mono ${holName ? 'text-red-600 font-bold' : 'text-gray-800'}">${formatBR(dStr)}</span>
-                        ${holName && inP ? `<span class="block text-[9px] text-red-500 uppercase mt-1 font-bold truncate max-w-[80px] mx-auto" title="${holName}">${holName}</span>` : ''}
-                    </th>`;
-                });
-                thead += `<th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100 w-24">Soma</th></tr></thead>`;
-
-                // Linhas
-                const rowN = generateRow(weekDatesStr, 'n', 'Normais', 'text-brand-800 bg-brand-50/50', p);
-                const rowA = generateRow(weekDatesStr, 'a', 'Adicionais', 'text-accent-700 bg-accent-100/30', p);
-                const rowNotes = generateNotesRow(weekDatesStr, p);
-
-                html += `
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-                            <h3 class="text-sm font-display font-bold text-gray-700">Semana: ${formatBR(currentMondayStr)} a ${formatBR(weekDatesStr[6])}</h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full border-collapse">
-                                ${thead}
-                                <tbody class="divide-y divide-gray-200">
-                                    ${rowN}
-                                    ${rowA}
-                                    ${rowNotes}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>`;
-
-                currentMondayStr = addDays(currentMondayStr, 7);
-                failsafe++;
-            }
-            return html;
-        }
-
-        function generateRow(weekDatesStr, key, label, rowClass, p) {
-            let html = `<tr class="${rowClass} transition-colors"><td class="px-4 py-3 text-sm font-semibold border-r border-gray-200">${label}</td>`;
-            let sum = 0;
-            const days = p.days || {};
-
-            weekDatesStr.forEach(dStr => {
-                const inP = dStr >= p.start && dStr <= p.end;
-                const v = days[dStr] && days[dStr][key] ? days[dStr][key] : '';
-                sum += parseFloat(v || 0);
-
-                if (!inP) {
-                    html += `<td class="bg-stripes opacity-40 border-r border-gray-200"></td>`;
-                } else {
-                    html += `
-                        <td class="p-1 border-r border-gray-200 relative bg-white">
-                            <input type="number" 
-                                class="w-full h-10 text-center font-mono text-sm bg-transparent border-2 border-transparent focus:border-brand-500 focus:bg-brand-50 outline-none rounded transition-colors" 
-                                value="${v}" 
-                                onchange="updateHour('${dStr}', '${key}', this.value)"
-                                step="0.5" min="0" max="24">
-                        </td>`;
-                }
-            });
-            html += `<td class="px-4 py-3 text-center font-mono font-bold border-l border-gray-200 bg-gray-50/50">${formatHours(sum)}</td></tr>`;
-            return html;
-        }
-
-        function generateNotesRow(weekDatesStr, p) {
-            let html = `<tr><td class="px-4 py-2 text-xs font-medium text-gray-500 border-r border-gray-200 bg-gray-50/50">Notas</td>`;
-            const days = p.days || {};
-
-            weekDatesStr.forEach(dStr => {
-                const inP = dStr >= p.start && dStr <= p.end;
-                const note = days[dStr] && days[dStr].note ? days[dStr].note : '';
-                
-                if (!inP) {
-                    html += `<td class="bg-stripes opacity-40 border-r border-gray-200"></td>`;
-                } else {
-                    const hasNote = note.trim().length > 0;
-                    const btnClass = hasNote 
-                        ? 'text-brand-600 bg-brand-100 hover:bg-brand-200' 
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100';
-                    
-                    html += `
-                        <td class="p-1.5 border-r border-gray-200 text-center">
-                            <button onclick="openNoteModal('${dStr}')" class="w-8 h-8 rounded-full inline-flex items-center justify-center transition-colors ${btnClass}" title="${hasNote ? 'Editar nota' : 'Adicionar nota'}">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-                            </button>
-                        </td>`;
-                }
-            });
-            html += `<td class="bg-gray-50/50"></td></tr>`;
-            return html;
-        }
-
-        window.updateHour = function(dateStr, key, valStr) {
-            const val = parseFloat(valStr);
-            const p = state.periods[state.currentId];
-            if (!p.days) p.days = {};
-            if (!p.days[dateStr]) p.days[dateStr] = {};
-            
-            if (isFinite(val) && val > 0) {
-                p.days[dateStr][key] = Math.min(24, val);
-            } else {
-                delete p.days[dateStr][key];
-            }
-            
-            // Cleanup vazio
-            if (!p.days[dateStr].n && !p.days[dateStr].a && !p.days[dateStr].note) {
-                delete p.days[dateStr];
-            }
-
-            saveData();
-            renderApp();
-        }
-
-        window.openNoteModal = function(dateStr) {
-            const p = state.periods[state.currentId];
-            const note = (p.days && p.days[dateStr] && p.days[dateStr].note) || '';
-            
-            document.getElementById('noteDateDisplay').innerText = `Data: ${formatBRFull(dateStr)}`;
-            document.getElementById('inpNoteDate').value = dateStr;
-            document.getElementById('inpNoteText').value = note;
-            
-            document.getElementById('noteModal').showModal();
-        }
-
-        window.saveNote = function() {
-            const dateStr = document.getElementById('inpNoteDate').value;
-            const text = document.getElementById('inpNoteText').value.trim();
-            const p = state.periods[state.currentId];
-            
-            if (!p.days) p.days = {};
-            if (!p.days[dateStr]) p.days[dateStr] = {};
-            
-            if (text.length > 0) {
-                p.days[dateStr].note = text;
-            } else {
-                delete p.days[dateStr].note;
-            }
-            
-            if (!p.days[dateStr].n && !p.days[dateStr].a && !p.days[dateStr].note) {
-                delete p.days[dateStr];
-            }
-
-            saveData();
-            document.getElementById('noteModal').close();
-            renderApp();
-        }
-
-        window.fillNormalHours = function() {
-            const p = state.periods[state.currentId];
-            if (!p.days) p.days = {};
-
-            for (const d of getDaysInPeriod(p)) {
-                const w = getDayOfWeek(d);
-                const isWknd = (w === 0 || w === 6);
-                const isHol = isHoliday(d);
-                
-                if (!isWknd && !isHol) {
-                    if (!p.days[d]) p.days[d] = {};
-                    if (!p.days[d].n) p.days[d].n = 8;
-                }
-            }
-            saveData();
-            renderApp();
-        }
-
-        window.clearHours = function() {
-            const p = state.periods[state.currentId];
-            // Remove apenas as horas (mantém as notas para não causar perda de dados de texto acidental)
-            if(p.days) {
-                for(let d in p.days) {
-                    delete p.days[d].n;
-                    delete p.days[d].a;
-                    if(!p.days[d].note) delete p.days[d];
-                }
-            }
-            saveData();
-            renderApp();
-        }
-
-        window.deleteCurrentPeriod = function() {
-            delete state.periods[state.currentId];
-            saveData();
-            validateSelection();
-            renderApp();
-        }
-
-        document.getElementById('periodSel').addEventListener('change', (e) => {
-            state.currentId = e.target.value;
-            saveData();
-            renderApp();
-        });
-
-        // Start App
-        init();
-
-    </script>
 </body>
 </html>
