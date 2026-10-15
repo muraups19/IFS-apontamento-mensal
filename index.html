@@ -1245,6 +1245,11 @@
     .tag.est {
       margin-left: 8px
     }
+
+    .hero .rcv {
+      font-size: .78rem;
+      opacity: .85
+    }
   </style>
 </head>
 
@@ -1639,6 +1644,7 @@
   <div class="hero">
     <div><span class="cap">Total a Receber</span><div class="big">${BRL.format(c.valT)}</div></div>
     <div class="base"><span>Base: ${BRL.format(salaryOf(p))}</span><span class="mono">${BRL.format(c.unit)}/h</span></div>
+    <div class="rcv">${p.paidOn ? 'Recebido em ' + brFull(p.paidOn) : 'Recebimento previsto: ' + mesAno(recvDate(p))}</div>
   </div>
   <div class="stats">
     <div class="stat"><span class="cap">Dias Úteis</span><span class="v">${c.work}</span>
@@ -1826,7 +1832,12 @@
 
       /* ---------- perfil e faturamento anual ---------- */
       const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-      const recvDate = p => p.paidOn || p.end;   // ano do faturamento = data de recebimento (ou fim do período)
+      // O valor de um período é recebido no mês seguinte ao fim dele (16/11 a 15/12 cai em janeiro).
+      // Se a data real foi informada (paidOn), ela vale. Sem data, usa o dia 1 do mês seguinte ao fim.
+      const PAY_DELAY_MONTHS = 1;
+      function estRecv(p) { const d = pd(p.end); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + PAY_DELAY_MONTHS); return fd(d) }
+      const recvDate = p => p.paidOn || estRecv(p);
+      const mesAno = s => MESES[+s.slice(5, 7) - 1].slice(0, 3).toLowerCase() + '/' + s.slice(0, 4);
       function syncNav() { const b = $('#profileBtn'); b.textContent = state.view === 'profile' ? 'Períodos' : 'Perfil'; b.setAttribute('aria-pressed', String(state.view === 'profile')) }
       $('#profileBtn').onclick = () => { state.view = state.view === 'profile' ? 'periods' : 'profile'; syncNav(); if (state.view === 'profile') renderProfile(); else afterSelect() };
 
@@ -1857,8 +1868,8 @@
         const est = R.rows.filter(r => r.est).length, avg = R.rows.length ? R.total / R.rows.length : 0;
         const monthRows = R.months.map((x, i) => `<tr class="${x.n ? '' : 'zero'}"><td>${MESES[i]}</td><td class="num">${x.n || '–'}</td><td class="num hcol">${x.n ? hh(x.hours) : '–'}</td>
       <td class="num">${x.n ? BRL.format(x.val) : '–'}</td><td class="barc"><div class="mbar"><i style="width:${x.val / maxM * 100}%"></i></div></td></tr>`).join('');
-        const periodRows = R.rows.map(r => `<tr><td><span class="num">${brFull(r.p.start)}</span> → <span class="num">${brFull(r.p.end)}</span>${r.cross ? '<span class="tag">vira o ano</span>' : ''}</td>
-      <td><input class="in" type="date" data-paid="${r.p.id}" value="${r.p.paidOn || ''}" aria-label="Data de recebimento do período ${brFull(r.p.start)}" ${state.hasPaidOn ? '' : 'disabled'}>${r.est ? '<span class="tag est">estimado: fim do período</span>' : ''}</td>
+        const periodRows = R.rows.map(r => `<tr><td><span class="num">${brFull(r.p.start)}</span> → <span class="num">${brFull(r.p.end)}</span>${r.p.end.slice(0, 4) !== Y ? `<span class="tag">período de ${r.p.end.slice(0, 4)}</span>` : ''}</td>
+      <td><input class="in" type="date" data-paid="${r.p.id}" value="${r.p.paidOn || ''}" aria-label="Data de recebimento do período ${brFull(r.p.start)}" ${state.hasPaidOn ? '' : 'disabled'}>${r.est ? `<span class="tag est">estimado: ${mesAno(r.date)}</span>` : ''}</td>
       <td class="num">${hh(r.c.total)}</td><td class="num"><b>${BRL.format(r.c.valT)}</b></td></tr>`).join('');
         $('#main').innerHTML = `
   <section class="card panel">
@@ -1886,7 +1897,7 @@
       <div class="stat"><span class="cap">Períodos</span><span class="v">${R.rows.length}</span><span class="s">com recebimento em ${Y}</span></div>
       <div class="stat n"><span class="cap">Horas Normais</span><span class="v">${hh(R.hn)}</span><span class="s">${BRL.format(R.vn)}</span></div>
       <div class="stat a"><span class="cap">Horas Adicionais</span><span class="v">${hh(R.ha)}</span><span class="s">${BRL.format(R.va)}</span></div>
-      <div class="stat"><span class="cap">Sem data de recebimento</span><span class="v">${est}</span><span class="s">usando o fim do período</span></div>
+      <div class="stat"><span class="cap">Recebimento estimado</span><span class="v">${est}</span><span class="s">sem data informada (mês seguinte ao fim)</span></div>
     </div>
   </div>
 
@@ -1901,7 +1912,7 @@
     <h3>Períodos de ${Y}</h3>
     ${R.rows.length ? `<div class="scroll"><table class="rep wide"><thead><tr><th>Período</th><th>Data de recebimento</th><th class="num">Horas</th><th class="num">Valor</th></tr></thead><tbody>${periodRows}</tbody></table></div>`
             : `<p class="dim">Nenhum período com recebimento em ${Y}.</p>`}
-    <p>Cada período entra no ano da <b>data de recebimento</b>. Se você não informar a data, vale o último dia do período${est ? ` (${est} ${est === 1 ? 'período está' : 'períodos estão'} assim em ${Y})` : ''}. Os valores são os calculados pelo painel (horas × valor da hora), sem descontos de impostos ou contribuições. Confira os critérios da declaração com seu contador.</p>
+    <p>Cada período entra no ano em que o valor é recebido. Pelo seu fluxo, o valor de um período cai no <b>mês seguinte ao fim dele</b>: 16/11 a 15/12 é recebido em janeiro, 16/12 a 15/01 em fevereiro. Se o pagamento veio em outra data, informe a data real e ela passa a valer${est ? ` (${est} ${est === 1 ? 'período está' : 'períodos estão'} com a data estimada em ${Y})` : ''}. Os valores são os calculados pelo painel (horas × valor da hora), sem descontos de impostos ou contribuições. Confira os critérios da declaração com seu contador.</p>
   </section>`;
       }
       function buildSummary() {
@@ -1909,7 +1920,7 @@
         const L = [`Faturamento ${Y}: ${BRL.format(R.total)}`, `${R.rows.length} períodos · ${hh(R.hn)} normais · ${hh(R.ha)} adicionais`, '', 'Mês a mês:'];
         R.months.forEach((x, i) => { if (x.n) L.push(`${MESES[i]}: ${BRL.format(x.val)}`) });
         L.push('', 'Períodos:');
-        R.rows.forEach(r => L.push(`${brFull(r.p.start)} a ${brFull(r.p.end)} · recebido em ${brFull(r.date)}${r.est ? ' (estimado)' : ''} · ${BRL.format(r.c.valT)}`));
+        R.rows.forEach(r => L.push(`${brFull(r.p.start)} a ${brFull(r.p.end)} · ${r.est ? 'recebimento estimado em ' + mesAno(r.date) : 'recebido em ' + brFull(r.date)} · ${BRL.format(r.c.valT)}`));
         return L.join('\n');
       }
       async function copyText(t, btn) {
